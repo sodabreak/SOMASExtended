@@ -16,27 +16,49 @@ import (
 type EnvironmentServer struct {
 	*server.BaseServer[common.IExtendedAgent]
 
-	teamsMutex    		sync.RWMutex
-	agentInfoList 		[]common.ExposedAgentInfo
-	teams         		map[uuid.UUID]common.Team
+	teamsMutex    sync.RWMutex
+	agentInfoList []common.ExposedAgentInfo
+	teams         map[uuid.UUID]common.Team
 
 	roundScoreThreshold int
 	deadAgents          []common.IExtendedAgent
 
-
 	// set of options for team strategies (agents rank these options)
-	aoaMenu  			[]*common.ArticlesOfAssociation
+	aoaMenu []*common.ArticlesOfAssociation
 }
 
-// overrides that requires implementation
+// Withdraw from the common pool (update to pass the pool value directly)
+func (cs *EnvironmentServer) ProcessWithdrawals() {
+	for _, team := range cs.teams {
+		teamPool := team.CommonPool // Fetch the current pool value for the team
+		for _, agentID := range team.Agents {
+			agent := cs.GetAgentMap()[agentID]
+			if !cs.IsAgentDead(agent.GetID()) {
+				withdrawal := agent.WithdrawFromCommonPool(teamPool)
+				if withdrawal <= teamPool {
+					teamPool -= withdrawal // Deduct from the pool
+					agent.SetTrueScore(agent.GetTrueScore() + withdrawal)
+				} else {
+					fmt.Printf("Withdrawal request of %d rejected for agent %v (only %d in pool)\n",
+						withdrawal, agentID, teamPool)
+				}
+			}
+		}
+		// Update the team's pool value after processing all withdrawals
+		team.CommonPool = teamPool
+		cs.teams[team.TeamID] = team
+	}
+}
+
+// RunTurn updated to replace withdrawal logic
 func (cs *EnvironmentServer) RunTurn(i, j int) {
 	fmt.Printf("\nIteration %v, Turn %v, current agent count: %v\n", i, j, len(cs.GetAgentMap()))
 
 	if j == 0 {
 		cs.StartAgentTeamForming()
-	} else { // debug roll dice for agents
+	} else {
 		for _, agent := range cs.GetAgentMap() {
-			if !cs.IsAgentDead(agent.GetID()) { // only agents that are alive can roll dice
+			if !cs.IsAgentDead(agent.GetID()) {
 				agent.StartRollingDice()
 				team := cs.teams[agent.GetTeamID()]
 				agentContribution := agent.ContributeToCommonPool()
@@ -45,16 +67,8 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 				agent.SetTrueScore(agent.GetTrueScore() - agentContribution)
 			}
 		}
-		cs.UpdateCommonPools()
-		for _, agent := range cs.GetAgentMap() {
-			if !cs.IsAgentDead(agent.GetID()) {
-				team := cs.teams[agent.GetTeamID()]
-				agentWithdrawal := agent.WithdrawFromCommonPool()
-				team.CommonPool -= agentWithdrawal
-				cs.teams[agent.GetTeamID()] = team
-				agent.SetTrueScore(agent.GetTrueScore() + agentWithdrawal)
-			}
-		}
+		cs.UpdateCommonPools()  // Update only after contributions
+		cs.ProcessWithdrawals() // Use the new withdrawal processing function
 	}
 }
 
@@ -70,11 +84,11 @@ func (cs *EnvironmentServer) RunStartOfIteration(int) {
 // Allocate AoA based on team votes;
 // for each member in team, count vote for AoA and then take majority (?) vote
 // assign majority vote back to team struct (team.Strategy)
-func (cs *EnvironmentServer) AllocateAoAs(){
+func (cs *EnvironmentServer) AllocateAoAs() {
 	// once teams assigned, gather AoA votes from each agent.
 	for _, team := range cs.teams {
 		// ranking cache for each team.
-		var voteSum = []int{0,0,0,0}
+		var voteSum = []int{0, 0, 0, 0}
 		for _, agent := range team.Agents {
 			for aoa, vote := range cs.GetAgentMap()[agent].GetAoARanking() {
 				voteSum[aoa] += vote
@@ -83,14 +97,14 @@ func (cs *EnvironmentServer) AllocateAoAs(){
 		// logic to check largest
 		var currentMax = 0
 		var preference = 0
-		for aoa, voteCount := range voteSum{
-			if voteCount > currentMax{
+		for aoa, voteCount := range voteSum {
+			if voteCount > currentMax {
 				currentMax = voteCount
 				preference = aoa
 			}
 		}
 
-		// update teams strategy. 
+		// update teams strategy.
 		team.TeamAoA = cs.aoaMenu[preference]
 	}
 }
@@ -153,7 +167,6 @@ func MakeEnvServer(numAgent int, iterations int, turns int, maxDuration time.Dur
 		common.CreateFixedAuditCost(40),
 		common.CreateFixedPunishment(40),
 	)
-
 
 	return serv
 }

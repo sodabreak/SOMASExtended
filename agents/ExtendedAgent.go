@@ -39,11 +39,11 @@ type AgentConfig struct {
 
 func GetBaseAgents(funcs agent.IExposedServerFunctions[common.IExtendedAgent], configParam AgentConfig) *ExtendedAgent {
 	return &ExtendedAgent{
-		BaseAgent:    	agent.CreateBaseAgent(funcs),
-		server:       	funcs.(common.IServer), // Type assert the server functions to IServer interface
-		score:        	configParam.InitScore,
-		verboseLevel: 	configParam.VerboseLevel,
-		AoARanking: 	[]int{3,2,1,0},
+		BaseAgent:    agent.CreateBaseAgent(funcs),
+		server:       funcs.(common.IServer), // Type assert the server functions to IServer interface
+		score:        configParam.InitScore,
+		verboseLevel: configParam.VerboseLevel,
+		AoARanking:   []int{3, 2, 1, 0},
 	}
 }
 
@@ -144,8 +144,24 @@ func (mi *ExtendedAgent) ContributeToCommonPool() int {
 }
 
 // make withdrawal from common pool
-func (mi *ExtendedAgent) WithdrawFromCommonPool() int {
-	fmt.Printf("%s is withdrawing from the common pool and thinks the common pool size is %d\n", mi.GetID(), mi.commonPoolValue)
+func (mi *ExtendedAgent) WithdrawFromCommonPool(currentPoolValue int) int {
+	fmt.Printf("%s is withdrawing from the common pool (current pool: %d)\n", mi.GetID(), currentPoolValue)
+
+	// Set maxRequest to the minimum of 5 and the current pool value
+	maxRequest := currentPoolValue
+	if maxRequest > 5 {
+		maxRequest = 5
+	}
+
+	// Randomly request between 1 and maxRequest units
+	requestAmount := rand.Intn(maxRequest) + 1 // Randomly generate between 1 and maxRequest
+	if requestAmount <= currentPoolValue {
+		fmt.Printf("%s successfully withdrew %d from the pool\n", mi.GetID(), requestAmount)
+		return requestAmount
+	}
+
+	fmt.Printf("%s withdrawal of %d rejected (pool only has %d)\n",
+		mi.GetID(), requestAmount, currentPoolValue)
 	return 0
 }
 
@@ -312,7 +328,7 @@ func (mi *ExtendedAgent) SetAoARanking(Preferences []int) {
 func (mi *ExtendedAgent) GetAoARanking() []int {
 	return mi.AoARanking
 }
-  
+
 func (mi *ExtendedAgent) SetCommonPoolValue(poolValue int) {
 	mi.commonPoolValue = poolValue
 	fmt.Printf("setting common pool to %d\n", poolValue)

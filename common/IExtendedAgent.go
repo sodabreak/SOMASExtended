@@ -35,8 +35,8 @@ type IExtendedAgent interface {
 	LogSelfInfo()
 	GetAoARanking() []int
 	SetAoARanking(Preferences []int)
-  
+
 	ContributeToCommonPool() int
-	WithdrawFromCommonPool() int
+	WithdrawFromCommonPool(currentPoolValue int) int // Updated to accept currentPoolValue
 	SetCommonPoolValue(pool int)
 }
