@@ -348,7 +348,7 @@ func (cs *EnvironmentServer) CreateAndInitTeamWithAgents(agentIDs []uuid.UUID) u
 }
 
 // agent get team
-func (cs *EnvironmentServer) GetTeam(agentID uuid.UUID) common.Team {
+func (cs *EnvironmentServer) GetTeam(agentID uuid.UUID) *common.Team {
 	// cs.teamsMutex.RLock()
 	// defer cs.teamsMutex.RUnlock()
 	return cs.teams[cs.GetAgentMap()[agentID].GetTeamID()]
