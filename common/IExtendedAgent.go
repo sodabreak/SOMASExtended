@@ -37,5 +37,4 @@ type IExtendedAgent interface {
 
 	ContributeToCommonPool() int
 	WithdrawFromCommonPool() int
-	SetCommonPoolValue(pool int)
 }

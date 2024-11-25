@@ -47,12 +47,11 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 				} // This only happens in case there is one agent left. In such a case, the agent/team should be declared as a winner anyway
 				agentContribution := agent.ContributeToCommonPool()
 				agentScore := agent.GetTrueScore()
-				team.CommonPool += agentContribution
+				team.SetCommonPool(team.GetCommonPool() + agentContribution)
 				team.SetContributionResult(agent.GetID(), agentScore, agentContribution)
 				agent.SetTrueScore(agentScore - agentContribution)
 			}
 		}
-		cs.UpdateCommonPools()
 		for _, agent := range cs.GetAgentMap() {
 			if !cs.IsAgentDead(agent.GetID()) {
 				if agent.GetTeamID() == uuid.Nil {
@@ -64,7 +63,7 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 				} // This only happens in case there is one agent left. In such a case, the agent/team should be declared as a winner anyway
 				agentWithdrawal := agent.WithdrawFromCommonPool()
 				agentScore := agent.GetTrueScore()
-				team.CommonPool -= agentWithdrawal
+				team.SetCommonPool(team.GetCommonPool() - agentWithdrawal)
 				team.SetWithdrawalResult(agent.GetID(), agentScore, agentWithdrawal)
 				agent.SetTrueScore(agentScore + agentWithdrawal)
 			}
@@ -352,25 +351,4 @@ func (cs *EnvironmentServer) GetTeam(agentID uuid.UUID) *common.Team {
 	// cs.teamsMutex.RLock()
 	// defer cs.teamsMutex.RUnlock()
 	return cs.teams[cs.GetAgentMap()[agentID].GetTeamID()]
-}
-
-/*
-* Update each agent's Common Pool value. For each team, check the value of its
-* pool, and update that value in each of the agents part of that team.
- */
-func (cs *EnvironmentServer) UpdateCommonPools() {
-
-	// acquire mutex
-	cs.teamsMutex.Lock()
-	defer cs.teamsMutex.Unlock()
-
-	agent_map := cs.GetAgentMap()
-	for _, team := range cs.teams {
-		// Get the value of the common pool
-		pool := team.CommonPool
-		// Distribute it amongst all the agents
-		for _, agentID := range team.Agents {
-			agent_map[agentID].SetCommonPoolValue(pool)
-		}
-	}
 }

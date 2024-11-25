@@ -18,10 +18,6 @@ type ExtendedAgent struct {
 	score  int
 	teamID uuid.UUID
 
-	// what the agent believes the common pool to be. This is updated on a
-	// turn-basis by the server, see EnvironmentServer.go
-	commonPoolValue int
-
 	// private
 	lastScore int
 
@@ -140,10 +136,10 @@ func (mi *ExtendedAgent) DecideRollAgain() {
 // make a contribution to the common pool
 func (mi *ExtendedAgent) ContributeToCommonPool() int {
 	if mi.HasTeam() {
-		if mi.verboseLevel > 6 {
-			fmt.Printf("%s is contributing to the common pool\n", mi.GetID())
-		}
 		contribution := mi.DecideSelfContribution()
+		if mi.verboseLevel > 6 {
+			fmt.Printf("%s is contributing %d to the common pool\n", mi.GetID(), contribution)
+		}
 		return contribution
 	} else {
 		if mi.verboseLevel > 6 {
@@ -173,7 +169,7 @@ func (mi *ExtendedAgent) DecideSelfContribution() int {
 
 // make withdrawal from common pool
 func (mi *ExtendedAgent) WithdrawFromCommonPool() int {
-	fmt.Printf("%s is withdrawing from the common pool and thinks the common pool size is %d\n", mi.GetID(), mi.commonPoolValue)
+	fmt.Printf("%s is withdrawing from the common pool and thinks the common pool size is %d\n", mi.GetID(), mi.server.GetTeam(mi.GetID()).GetCommonPool())
 	return 0
 }
 
@@ -383,9 +379,4 @@ func (mi *ExtendedAgent) SetAoARanking(Preferences []int) {
 
 func (mi *ExtendedAgent) GetAoARanking() []int {
 	return mi.AoARanking
-}
-
-func (mi *ExtendedAgent) SetCommonPoolValue(poolValue int) {
-	mi.commonPoolValue = poolValue
-	fmt.Printf("setting common pool to %d\n", poolValue)
 }

@@ -15,7 +15,6 @@ type IServer interface {
 	CreateAndInitTeamWithAgents(agentIDs []uuid.UUID) uuid.UUID
 	UpdateAndGetAgentExposedInfo() []ExposedAgentInfo
 	StartAgentTeamForming()
-	UpdateCommonPools()
 
 	GetTeam(agentID uuid.UUID) *Team
 
