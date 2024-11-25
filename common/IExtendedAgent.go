@@ -24,18 +24,17 @@ type IExtendedAgent interface {
 	StartTeamForming(agentInfoList []ExposedAgentInfo)
 
 	// Messaging functions
-	// BroadcastMessageInTeam(T any)
-	SendPrivateMessage(receiver uuid.UUID, msg IExtendedMessage)
-	SendTeamMessage(msg IExtendedMessage)
-	SendMessageBroadcast(msg IExtendedMessage)
-	ReceiveMessage(msg any)
+	HandleTeamFormationMessage(msg *TeamFormationMessage)
+	HandleScoreReportMessage(msg *ScoreReportMessage)
+	HandleWithdrawalMessage(msg *WithdrawalMessage)
+	HandleContributionMessage(msg *ContributionMessage)
 
 	// Info
 	GetExposedInfo() ExposedAgentInfo
 	LogSelfInfo()
 	GetAoARanking() []int
 	SetAoARanking(Preferences []int)
-  
+
 	ContributeToCommonPool() int
 	WithdrawFromCommonPool() int
 	SetCommonPoolValue(pool int)

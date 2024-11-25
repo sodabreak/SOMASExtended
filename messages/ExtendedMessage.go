@@ -17,5 +17,5 @@ func (m ExtendedMessage) GetTeamID() uuid.UUID {
 }
 
 func (m *ExtendedMessage) InvokeMessageHandler(mi common.IExtendedAgent) {
-	mi.ReceiveMessage(m)
+
 }
