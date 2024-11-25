@@ -3,6 +3,7 @@ package environmentServer
 import (
 	"SOMAS_Extended/agents"
 	"SOMAS_Extended/common"
+	aoa "SOMAS_Extended/ArticlesOfAssociation"
 	"fmt"
 	"math/rand"
 	"sync"
@@ -25,7 +26,7 @@ type EnvironmentServer struct {
 
 
 	// set of options for team strategies (agents rank these options)
-	aoaMenu  			[]*common.ArticlesOfAssociation
+	aoaMenu  			[]aoa.IArticlesOfAssociation
 }
 
 // overrides that requires implementation
@@ -136,36 +137,16 @@ func MakeEnvServer(numAgent int, iterations int, turns int, maxDuration time.Dur
 		// TEAM 6
 	}
 
-	serv.aoaMenu = []*common.ArticlesOfAssociation{nil, nil, nil, nil}
+	serv.aoaMenu = make([]aoa.IArticlesOfAssociation, 4)
 
 	// for now, menu just has 4 choices of AoA. TBC.
-	serv.aoaMenu[0] = common.CreateArticlesOfAssociation(
-		common.CreateFixedContributionRule(10),
-		common.CreateFixedWithdrawalRule(10),
-		common.CreateFixedAuditCost(10),
-		common.CreateFixedPunishment(10),
-	)
+	serv.aoaMenu[0] = aoa.CreateFixedAoA()
 
-	serv.aoaMenu[1] = common.CreateArticlesOfAssociation(
-		common.CreateFixedContributionRule(20),
-		common.CreateFixedWithdrawalRule(20),
-		common.CreateFixedAuditCost(20),
-		common.CreateFixedPunishment(20),
-	)
+	serv.aoaMenu[1] = aoa.CreateFixedAoA()
 
-	serv.aoaMenu[2] = common.CreateArticlesOfAssociation(
-		common.CreateFixedContributionRule(30),
-		common.CreateFixedWithdrawalRule(30),
-		common.CreateFixedAuditCost(30),
-		common.CreateFixedPunishment(30),
-	)
+	serv.aoaMenu[2] = aoa.CreateFixedAoA()
 
-	serv.aoaMenu[3] = common.CreateArticlesOfAssociation(
-		common.CreateFixedContributionRule(40),
-		common.CreateFixedWithdrawalRule(40),
-		common.CreateFixedAuditCost(40),
-		common.CreateFixedPunishment(40),
-	)
+	serv.aoaMenu[3] = aoa.CreateFixedAoA()
 
 	return serv
 }

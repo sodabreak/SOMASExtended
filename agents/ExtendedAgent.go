@@ -156,7 +156,7 @@ func (mi *ExtendedAgent) ContributeToCommonPool() int {
 func (mi *ExtendedAgent) DecideSelfContribution() int {
 	// MVP: contribute exactly as defined in AoA
 	if mi.server.GetTeam(mi.GetID()).TeamAoA != nil {
-		aoaExpectedContribution := mi.server.GetTeam(mi.GetID()).TeamAoA.GetContributionRule().GetExpectedContributionAmount(mi.GetTrueScore())
+		aoaExpectedContribution := mi.server.GetTeam(mi.GetID()).TeamAoA.GetExpectedContribution(mi.GetID(), mi.GetTrueScore())
 		// double check if score in agent is sufficient (this should be handled by AoA though)
 		if mi.GetTrueScore() < aoaExpectedContribution {
 			return mi.GetTrueScore() // give all score if less than expected

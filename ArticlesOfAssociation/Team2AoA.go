@@ -44,8 +44,19 @@ func (t *Team2AoA) ResetAuditMap() {
 	t.AuditMap = make(map[uuid.UUID]*AuditQueue)
 }
 
+func (t *Team2AoA) GetExpectedContribution(agentId uuid.UUID, agentScore int) int {
+	return agentScore
+}
+
 func (t *Team2AoA) SetContributionResult(agentId uuid.UUID, agentScore int, agentContribution int) {
 	t.AuditMap[agentId].AddToQueue(agentContribution != agentScore)
+}
+
+func (t *Team2AoA) GetExpectedWithdrawal(agentId uuid.UUID, agentScore int) int {
+	if agentId == t.Leader {
+		return int(float64(agentScore) * 0.25)
+	}
+	return int(float64(agentScore) * 0.10)
 }
 
 func (t *Team2AoA) SetWithdrawalResult(agentId uuid.UUID, agentScore int, agentWithdrawal int) {
@@ -80,4 +91,9 @@ func (t *Team2AoA) GetVoteResult(votes []Vote) *uuid.UUID {
 	return &uuid.Nil
 }
 
-
+func CreateTeam2AoA() IArticlesOfAssociation {
+	return &Team2AoA{
+		AuditMap: make(map[uuid.UUID]*AuditQueue),
+		OffenceMap: make(map[uuid.UUID]int),
+	}
+}
