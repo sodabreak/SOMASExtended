@@ -18,7 +18,7 @@ type EnvironmentServer struct {
 
 	teamsMutex    		sync.RWMutex
 	agentInfoList 		[]common.ExposedAgentInfo
-	teams         		map[uuid.UUID]common.Team
+	teams         		map[uuid.UUID]*common.Team
 
 	roundScoreThreshold int
 	deadAgents          []common.IExtendedAgent
@@ -37,22 +37,36 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 	} else { // debug roll dice for agents
 		for _, agent := range cs.GetAgentMap() {
 			if !cs.IsAgentDead(agent.GetID()) { // only agents that are alive can roll dice
+				if agent.GetTeamID() == uuid.Nil {
+					continue
+				}
 				agent.StartRollingDice()
 				team := cs.teams[agent.GetTeamID()]
+				if team == nil {
+					continue
+				} // This only happens in case there is one agent left. In such a case, the agent/team should be declared as a winner anyway
 				agentContribution := agent.ContributeToCommonPool()
+				agentScore := agent.GetTrueScore()
 				team.CommonPool += agentContribution
-				cs.teams[agent.GetTeamID()] = team
-				agent.SetTrueScore(agent.GetTrueScore() - agentContribution)
+				team.SetContributionResult(agent.GetID(), agentScore, agentContribution)
+				agent.SetTrueScore(agentScore - agentContribution)
 			}
 		}
 		cs.UpdateCommonPools()
 		for _, agent := range cs.GetAgentMap() {
 			if !cs.IsAgentDead(agent.GetID()) {
+				if agent.GetTeamID() == uuid.Nil {
+					continue
+				}
 				team := cs.teams[agent.GetTeamID()]
+				if team == nil {
+					continue
+				} // This only happens in case there is one agent left. In such a case, the agent/team should be declared as a winner anyway
 				agentWithdrawal := agent.WithdrawFromCommonPool()
+				agentScore := agent.GetTrueScore()
 				team.CommonPool -= agentWithdrawal
-				cs.teams[agent.GetTeamID()] = team
-				agent.SetTrueScore(agent.GetTrueScore() + agentWithdrawal)
+				team.SetWithdrawalResult(agent.GetID(), agentScore, agentWithdrawal)
+				agent.SetTrueScore(agentScore + agentWithdrawal)
 			}
 		}
 	}
@@ -76,6 +90,9 @@ func (cs *EnvironmentServer) AllocateAoAs(){
 		// ranking cache for each team.
 		var voteSum = []int{0,0,0,0}
 		for _, agent := range team.Agents {
+			if cs.IsAgentDead(agent) {
+				continue
+			}
 			for aoa, vote := range cs.GetAgentMap()[agent].GetAoARanking() {
 				voteSum[aoa] += vote
 			}
@@ -90,7 +107,7 @@ func (cs *EnvironmentServer) AllocateAoAs(){
 			}
 		}
 
-		// update teams strategy. 
+		// update teams strategy.
 		team.TeamAoA = cs.aoaMenu[preference]
 	}
 }
@@ -113,7 +130,7 @@ func (cs *EnvironmentServer) Start() {
 func MakeEnvServer(numAgent int, iterations int, turns int, maxDuration time.Duration, maxThread int, agentConfig agents.AgentConfig) *EnvironmentServer {
 	serv := &EnvironmentServer{
 		BaseServer: server.CreateBaseServer[common.IExtendedAgent](iterations, turns, maxDuration, maxThread),
-		teams:      make(map[uuid.UUID]common.Team),
+		teams:      make(map[uuid.UUID]*common.Team),
 	}
 	serv.SetGameRunner(serv)
 
@@ -231,7 +248,7 @@ func (cs *EnvironmentServer) IsAgentDead(agentID uuid.UUID) bool {
 func (cs *EnvironmentServer) StartAgentTeamForming() {
 	// Clear existing teams at the start of team formation
 	cs.teamsMutex.Lock()
-	cs.teams = make(map[uuid.UUID]common.Team)
+	cs.teams = make(map[uuid.UUID]*common.Team)
 	cs.teamsMutex.Unlock()
 
 	// Get updated agent info and let agents form teams
@@ -246,7 +263,7 @@ func (cs *EnvironmentServer) StartAgentTeamForming() {
 }
 
 func (cs *EnvironmentServer) CreateTeam() {
-	cs.teams = make(map[uuid.UUID]common.Team)
+	cs.teams = make(map[uuid.UUID]*common.Team)
 }
 
 func (cs *EnvironmentServer) AddAgentToTeam(agentID uuid.UUID, teamID uuid.UUID) {
@@ -298,10 +315,7 @@ func (cs *EnvironmentServer) CreateAndInitTeamWithAgents(agentIDs []uuid.UUID) u
 
 	// Protect map write with mutex
 	cs.teamsMutex.Lock()
-	cs.teams[teamID] = common.Team{
-		TeamID: teamID,
-		Agents: agentIDs,
-	}
+	cs.teams[teamID] = common.NewTeam()
 	cs.teamsMutex.Unlock()
 
 	// Update each agent's team ID

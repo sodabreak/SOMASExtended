@@ -11,9 +11,9 @@ type Team struct {
 }
 
 // constructor: NewTeam creates a new Team with a unique TeamID and initializes other fields as blank.
-func NewTeam() Team {
+func NewTeam() *Team {
 	aoa := CreateArticlesOfAssociation(CreateFixedContributionRule(10), CreateFixedWithdrawalRule(10), CreateFixedAuditCost(10), CreateFixedPunishment(10))
-	return Team{
+	return &Team{
 		TeamID:     	uuid.New(),             // Generate a unique TeamID
 		CommonPool: 	0,                      // Initialize commonPool to 0
 		Agents:     	[]uuid.UUID{},          // Initialize an empty slice of agent UUIDs
