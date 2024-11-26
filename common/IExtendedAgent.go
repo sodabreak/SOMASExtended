@@ -10,6 +10,7 @@ type IExtendedAgent interface {
 
 	// Getters
 	GetTeamID() uuid.UUID
+	GetLastTeamID() uuid.UUID
 	GetTrueScore() int
 
 	// Setters

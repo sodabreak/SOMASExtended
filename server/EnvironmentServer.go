@@ -217,19 +217,19 @@ func (cs *EnvironmentServer) LogAgentStatus() {
 
 // pretty logging to show all team status
 func (cs *EnvironmentServer) LogTeamStatus() {
-	for _, team := range cs.teams {
-		fmt.Printf("Team %v: %v\n", team.TeamID, team.Agents)
-	}
-	// Log agents with no team
-	for _, agent := range cs.GetAgentMap() {
-		if agent.GetTeamID() == uuid.Nil {
-			fmt.Printf("Agent %v has no team\n", agent.GetID())
-		}
-	}
-	// Log dead agents
-	for _, agent := range cs.deadAgents {
-		fmt.Printf("Agent %v is dead, last team: %v\n", agent.GetID(), agent.(*agents.ExtendedAgent).LastTeamID)
-	}
+    for _, team := range cs.teams {
+        fmt.Printf("Team %v: %v\n", team.TeamID, team.Agents)
+    }
+    // Log agents with no team
+    for _, agent := range cs.GetAgentMap() {
+        if agent.GetTeamID() == uuid.Nil {
+            fmt.Printf("Agent %v has no team\n", agent.GetID())
+        }
+    }
+    // Log dead agents
+    for _, agent := range cs.deadAgents {
+		fmt.Printf("Agent %v is dead, last team: %v\n", agent.GetID(), agent.GetLastTeamID())
+    }
 }
 
 func (cs *EnvironmentServer) UpdateAndGetAgentExposedInfo() []common.ExposedAgentInfo {
