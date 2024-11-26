@@ -16,9 +16,9 @@ import (
 type EnvironmentServer struct {
 	*server.BaseServer[common.IExtendedAgent]
 
-	teamsMutex    sync.RWMutex
-	agentInfoList []common.ExposedAgentInfo
-	teams         map[uuid.UUID]common.Team
+	teamsMutex    		sync.RWMutex
+	agentInfoList 		[]common.ExposedAgentInfo
+	teams         		map[uuid.UUID]*common.Team
 
 	roundScoreThreshold int
 	deadAgents          []common.IExtendedAgent
@@ -31,28 +31,38 @@ type EnvironmentServer struct {
 func (cs *EnvironmentServer) RunTurn(i, j int) {
 	fmt.Printf("\nIteration %v, Turn %v, current agent count: %v\n", i, j, len(cs.GetAgentMap()))
 
-	if j == 0 {
-		cs.StartAgentTeamForming()
-	} else { // debug roll dice for agents
-		for _, agent := range cs.GetAgentMap() {
-			if !cs.IsAgentDead(agent.GetID()) { // only agents that are alive can roll dice
-				agent.StartRollingDice()
-				team := cs.teams[agent.GetTeamID()]
-				agentContribution := agent.ContributeToCommonPool()
-				team.CommonPool += agentContribution
-				cs.teams[agent.GetTeamID()] = team
-				agent.SetTrueScore(agent.GetTrueScore() - agentContribution)
+
+	for _, agent := range cs.GetAgentMap() {
+		if !cs.IsAgentDead(agent.GetID()) { // only agents that are alive can roll dice
+			if agent.GetTeamID() == uuid.Nil {
+				continue
 			}
+			agent.StartRollingDice()
+			team := cs.teams[agent.GetTeamID()]
+			if team == nil {
+				continue
+			} // This only happens in case there is one agent left. In such a case, the agent/team should be declared as a winner anyway
+			agentContribution := agent.ContributeToCommonPool()
+			agentScore := agent.GetTrueScore()
+			team.SetCommonPool(team.GetCommonPool() + agentContribution)
+			team.SetContributionResult(agent.GetID(), agentScore, agentContribution)
+			agent.SetTrueScore(agentScore - agentContribution)
 		}
-		cs.UpdateCommonPools()
-		for _, agent := range cs.GetAgentMap() {
-			if !cs.IsAgentDead(agent.GetID()) {
-				team := cs.teams[agent.GetTeamID()]
-				agentWithdrawal := agent.WithdrawFromCommonPool()
-				team.CommonPool -= agentWithdrawal
-				cs.teams[agent.GetTeamID()] = team
-				agent.SetTrueScore(agent.GetTrueScore() + agentWithdrawal)
+	}
+	for _, agent := range cs.GetAgentMap() {
+		if !cs.IsAgentDead(agent.GetID()) {
+			if agent.GetTeamID() == uuid.Nil {
+				continue
 			}
+			team := cs.teams[agent.GetTeamID()]
+			if team == nil {
+				continue
+			} // This only happens in case there is one agent left. In such a case, the agent/team should be declared as a winner anyway
+			agentWithdrawal := agent.WithdrawFromCommonPool()
+			agentScore := agent.GetTrueScore()
+			team.SetCommonPool(team.GetCommonPool() - agentWithdrawal)
+			team.SetWithdrawalResult(agent.GetID(), agentScore, agentWithdrawal)
+			agent.SetTrueScore(agentScore + agentWithdrawal)
 		}
 	}
 }
@@ -60,7 +70,9 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 func (cs *EnvironmentServer) RunStartOfIteration(iteration int) {
 	fmt.Printf("--------Start of iteration %v---------\n", iteration)
 	cs.CreateNewRoundScoreThreshold()
+
 	// start team forming
+	cs.StartAgentTeamForming()
 
 	// take votes at team level and allocate Strategy.
 	cs.AllocateAoAs()
@@ -122,7 +134,7 @@ func (cs *EnvironmentServer) Start() {
 func MakeEnvServer(numAgent int, iterations int, turns int, maxDuration time.Duration, maxThread int, agentConfig agents.AgentConfig) *EnvironmentServer {
 	serv := &EnvironmentServer{
 		BaseServer: server.CreateBaseServer[common.IExtendedAgent](iterations, turns, maxDuration, maxThread),
-		teams:      make(map[uuid.UUID]common.Team),
+		teams:      make(map[uuid.UUID]*common.Team),
 	}
 	serv.SetGameRunner(serv)
 
@@ -275,7 +287,7 @@ func (cs *EnvironmentServer) IsAgentDead(agentID uuid.UUID) bool {
 func (cs *EnvironmentServer) StartAgentTeamForming() {
 	// Clear existing teams at the start of team formation
 	cs.teamsMutex.Lock()
-	cs.teams = make(map[uuid.UUID]common.Team)
+	cs.teams = make(map[uuid.UUID]*common.Team)
 	cs.teamsMutex.Unlock()
 
 	// Get updated agent info and let agents form teams
@@ -290,7 +302,7 @@ func (cs *EnvironmentServer) StartAgentTeamForming() {
 }
 
 func (cs *EnvironmentServer) CreateTeam() {
-	cs.teams = make(map[uuid.UUID]common.Team)
+	cs.teams = make(map[uuid.UUID]*common.Team)
 }
 
 func (cs *EnvironmentServer) AddAgentToTeam(agentID uuid.UUID, teamID uuid.UUID) {
@@ -298,7 +310,12 @@ func (cs *EnvironmentServer) AddAgentToTeam(agentID uuid.UUID, teamID uuid.UUID)
 	defer cs.teamsMutex.Unlock()
 
 	// Check if agent is already in this team
-	team := cs.teams[teamID]
+    team, exists := cs.teams[teamID]
+    if !exists {
+        fmt.Printf("[server] Team %v does not exist\n", teamID)
+        return
+    }
+
 	for _, existingAgent := range team.Agents {
 		if existingAgent == agentID {
 			return // Skip if agent already exists
@@ -306,7 +323,6 @@ func (cs *EnvironmentServer) AddAgentToTeam(agentID uuid.UUID, teamID uuid.UUID)
 	}
 
 	team.Agents = append(team.Agents, agentID)
-	cs.teams[teamID] = team
 }
 
 func (cs *EnvironmentServer) GetAgentsInTeam(teamID uuid.UUID) []uuid.UUID {
@@ -348,16 +364,14 @@ func (cs *EnvironmentServer) CreateAndInitTeamWithAgents(agentIDs []uuid.UUID) u
 
 	// Protect map write with mutex
 	cs.teamsMutex.Lock()
-	cs.teams[teamID] = common.Team{
-		TeamID: teamID,
-		Agents: agentIDs,
-	}
+	cs.teams[teamID] = common.NewTeam(teamID)
 	cs.teamsMutex.Unlock()
 
 	// Update each agent's team ID
 	for _, agentID := range agentIDs {
 		if agent, exists := cs.GetAgentMap()[agentID]; exists {
 			agent.SetTeamID(teamID)
+			cs.AddAgentToTeam(agentID, teamID)
 		}
 	}
 
@@ -366,29 +380,8 @@ func (cs *EnvironmentServer) CreateAndInitTeamWithAgents(agentIDs []uuid.UUID) u
 }
 
 // agent get team
-func (cs *EnvironmentServer) GetTeam(agentID uuid.UUID) common.Team {
+func (cs *EnvironmentServer) GetTeam(agentID uuid.UUID) *common.Team {
 	// cs.teamsMutex.RLock()
 	// defer cs.teamsMutex.RUnlock()
 	return cs.teams[cs.GetAgentMap()[agentID].GetTeamID()]
-}
-
-/*
-* Update each agent's Common Pool value. For each team, check the value of its
-* pool, and update that value in each of the agents part of that team.
- */
-func (cs *EnvironmentServer) UpdateCommonPools() {
-
-	// acquire mutex
-	cs.teamsMutex.Lock()
-	defer cs.teamsMutex.Unlock()
-
-	agent_map := cs.GetAgentMap()
-	for _, team := range cs.teams {
-		// Get the value of the common pool
-		pool := team.CommonPool
-		// Distribute it amongst all the agents
-		for _, agentID := range team.Agents {
-			agent_map[agentID].SetCommonPoolValue(pool)
-		}
-	}
 }
