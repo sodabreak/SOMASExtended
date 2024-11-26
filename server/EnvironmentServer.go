@@ -32,41 +32,38 @@ type EnvironmentServer struct {
 func (cs *EnvironmentServer) RunTurn(i, j int) {
 	fmt.Printf("\nIteration %v, Turn %v, current agent count: %v\n", i, j, len(cs.GetAgentMap()))
 
-	if j == 0 {
-		cs.StartAgentTeamForming()
-	} else { // debug roll dice for agents
-		for _, agent := range cs.GetAgentMap() {
-			if !cs.IsAgentDead(agent.GetID()) { // only agents that are alive can roll dice
-				if agent.GetTeamID() == uuid.Nil {
-					continue
-				}
-				agent.StartRollingDice()
-				team := cs.teams[agent.GetTeamID()]
-				if team == nil {
-					continue
-				} // This only happens in case there is one agent left. In such a case, the agent/team should be declared as a winner anyway
-				agentContribution := agent.ContributeToCommonPool()
-				agentScore := agent.GetTrueScore()
-				team.SetCommonPool(team.GetCommonPool() + agentContribution)
-				team.SetContributionResult(agent.GetID(), agentScore, agentContribution)
-				agent.SetTrueScore(agentScore - agentContribution)
+
+	for _, agent := range cs.GetAgentMap() {
+		if !cs.IsAgentDead(agent.GetID()) { // only agents that are alive can roll dice
+			if agent.GetTeamID() == uuid.Nil {
+				continue
 			}
+			agent.StartRollingDice()
+			team := cs.teams[agent.GetTeamID()]
+			if team == nil {
+				continue
+			} // This only happens in case there is one agent left. In such a case, the agent/team should be declared as a winner anyway
+			agentContribution := agent.ContributeToCommonPool()
+			agentScore := agent.GetTrueScore()
+			team.SetCommonPool(team.GetCommonPool() + agentContribution)
+			team.SetContributionResult(agent.GetID(), agentScore, agentContribution)
+			agent.SetTrueScore(agentScore - agentContribution)
 		}
-		for _, agent := range cs.GetAgentMap() {
-			if !cs.IsAgentDead(agent.GetID()) {
-				if agent.GetTeamID() == uuid.Nil {
-					continue
-				}
-				team := cs.teams[agent.GetTeamID()]
-				if team == nil {
-					continue
-				} // This only happens in case there is one agent left. In such a case, the agent/team should be declared as a winner anyway
-				agentWithdrawal := agent.WithdrawFromCommonPool()
-				agentScore := agent.GetTrueScore()
-				team.SetCommonPool(team.GetCommonPool() - agentWithdrawal)
-				team.SetWithdrawalResult(agent.GetID(), agentScore, agentWithdrawal)
-				agent.SetTrueScore(agentScore + agentWithdrawal)
+	}
+	for _, agent := range cs.GetAgentMap() {
+		if !cs.IsAgentDead(agent.GetID()) {
+			if agent.GetTeamID() == uuid.Nil {
+				continue
 			}
+			team := cs.teams[agent.GetTeamID()]
+			if team == nil {
+				continue
+			} // This only happens in case there is one agent left. In such a case, the agent/team should be declared as a winner anyway
+			agentWithdrawal := agent.WithdrawFromCommonPool()
+			agentScore := agent.GetTrueScore()
+			team.SetCommonPool(team.GetCommonPool() - agentWithdrawal)
+			team.SetWithdrawalResult(agent.GetID(), agentScore, agentWithdrawal)
+			agent.SetTrueScore(agentScore + agentWithdrawal)
 		}
 	}
 }
@@ -74,7 +71,9 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 func (cs *EnvironmentServer) RunStartOfIteration(iteration int) {
 	fmt.Printf("--------Start of iteration %v---------\n", iteration)
 	cs.CreateNewRoundScoreThreshold()
+
 	// start team forming
+	cs.StartAgentTeamForming()
 
 	// take votes at team level and allocate Strategy.
 	cs.AllocateAoAs()
@@ -282,7 +281,12 @@ func (cs *EnvironmentServer) AddAgentToTeam(agentID uuid.UUID, teamID uuid.UUID)
 	defer cs.teamsMutex.Unlock()
 
 	// Check if agent is already in this team
-	team := cs.teams[teamID]
+    team, exists := cs.teams[teamID]
+    if !exists {
+        fmt.Printf("[server] Team %v does not exist\n", teamID)
+        return
+    }
+
 	for _, existingAgent := range team.Agents {
 		if existingAgent == agentID {
 			return // Skip if agent already exists
@@ -290,7 +294,6 @@ func (cs *EnvironmentServer) AddAgentToTeam(agentID uuid.UUID, teamID uuid.UUID)
 	}
 
 	team.Agents = append(team.Agents, agentID)
-	cs.teams[teamID] = team
 }
 
 func (cs *EnvironmentServer) GetAgentsInTeam(teamID uuid.UUID) []uuid.UUID {
@@ -332,13 +335,14 @@ func (cs *EnvironmentServer) CreateAndInitTeamWithAgents(agentIDs []uuid.UUID) u
 
 	// Protect map write with mutex
 	cs.teamsMutex.Lock()
-	cs.teams[teamID] = common.NewTeam()
+	cs.teams[teamID] = common.NewTeam(teamID)
 	cs.teamsMutex.Unlock()
 
 	// Update each agent's team ID
 	for _, agentID := range agentIDs {
 		if agent, exists := cs.GetAgentMap()[agentID]; exists {
 			agent.SetTeamID(teamID)
+			cs.AddAgentToTeam(agentID, teamID)
 		}
 	}
 
