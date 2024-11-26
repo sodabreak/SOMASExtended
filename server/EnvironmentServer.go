@@ -27,15 +27,55 @@ type EnvironmentServer struct {
 	aoaMenu []*common.ArticlesOfAssociation
 }
 
+// Withdraw from the common pool (randomized processing order)
+func (cs *EnvironmentServer) ProcessWithdrawals() {
+	r := rand.New(rand.NewSource(time.Now().UnixNano())) // Create a random generator
+
+	for _, team := range cs.teams {
+		teamPool := team.CommonPool // Fetch the current pool value for the team
+
+		if teamPool <= 0 {
+			fmt.Printf("Team %v's pool is empty. No withdrawals can be processed.\n", team.TeamID)
+			continue
+		}
+
+		// Shuffle the agents to process withdrawals in random order
+		shuffledAgents := make([]uuid.UUID, len(team.Agents))
+		copy(shuffledAgents, team.Agents)
+		r.Shuffle(len(shuffledAgents), func(i, j int) {
+			shuffledAgents[i], shuffledAgents[j] = shuffledAgents[j], shuffledAgents[i]
+		})
+
+		for _, agentID := range shuffledAgents {
+			agent := cs.GetAgentMap()[agentID]
+			if !cs.IsAgentDead(agent.GetID()) {
+				withdrawal := agent.WithdrawFromCommonPool(teamPool)
+				if withdrawal <= teamPool {
+					teamPool -= withdrawal // Deduct from the pool
+					agent.SetTrueScore(agent.GetTrueScore() + withdrawal)
+				} else {
+					fmt.Printf("Withdrawal request of %d rejected for agent %v (only %d in pool)\n",
+						withdrawal, agentID, teamPool)
+				}
+			}
+		}
+		// Update the team's pool value after processing all withdrawals
+		team.CommonPool = teamPool
+		cs.teams[team.TeamID] = team
+	}
+}
+
 // overrides that requires implementation
 func (cs *EnvironmentServer) RunTurn(i, j int) {
 	fmt.Printf("\nIteration %v, Turn %v, current agent count: %v\n", i, j, len(cs.GetAgentMap()))
 
 	if j == 0 {
+		// Team formation happens only at the start of a turn
 		cs.StartAgentTeamForming()
-	} else { // debug roll dice for agents
+	} else {
+		// Process contributions
 		for _, agent := range cs.GetAgentMap() {
-			if !cs.IsAgentDead(agent.GetID()) { // only agents that are alive can roll dice
+			if !cs.IsAgentDead(agent.GetID()) { // Only alive agents contribute
 				agent.StartRollingDice()
 				team := cs.teams[agent.GetTeamID()]
 				agentContribution := agent.ContributeToCommonPool()
@@ -44,16 +84,16 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 				agent.SetTrueScore(agent.GetTrueScore() - agentContribution)
 			}
 		}
+
+		// Update agents' view of the common pool values
 		cs.UpdateCommonPools()
-		for _, agent := range cs.GetAgentMap() {
-			if !cs.IsAgentDead(agent.GetID()) {
-				team := cs.teams[agent.GetTeamID()]
-				agentWithdrawal := agent.WithdrawFromCommonPool()
-				team.CommonPool -= agentWithdrawal
-				cs.teams[agent.GetTeamID()] = team
-				agent.SetTrueScore(agent.GetTrueScore() + agentWithdrawal)
-			}
-		}
+
+		// contribute audit
+
+		// Process withdrawals in randomized order using the new function
+		cs.ProcessWithdrawals()
+
+		// withdrawl audit
 	}
 }
 

@@ -36,6 +36,6 @@ type IExtendedAgent interface {
 	SetAoARanking(Preferences []int)
 
 	ContributeToCommonPool() int
-	WithdrawFromCommonPool() int
+	WithdrawFromCommonPool(currentPoolValue int) int // Updated method signature
 	SetCommonPoolValue(pool int)
 }

@@ -18,6 +18,7 @@ type IServer interface {
 	UpdateCommonPools()
 
 	GetTeam(agentID uuid.UUID) Team
+	ProcessWithdrawals() // Added this method
 
 	// Debug functions
 	LogAgentStatus()

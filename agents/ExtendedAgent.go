@@ -175,8 +175,30 @@ func (mi *ExtendedAgent) DecideSelfContribution() int {
 }
 
 // make withdrawal from common pool
-func (mi *ExtendedAgent) WithdrawFromCommonPool() int {
-	fmt.Printf("%s is withdrawing from the common pool and thinks the common pool size is %d\n", mi.GetID(), mi.commonPoolValue)
+func (mi *ExtendedAgent) WithdrawFromCommonPool(currentPoolValue int) int {
+	fmt.Printf("%s is withdrawing from the common pool (current pool: %d)\n", mi.GetID(), currentPoolValue)
+
+	// Check if the pool value is zero
+	if currentPoolValue <= 0 {
+		fmt.Printf("%s cannot withdraw because the pool is empty.\n", mi.GetID())
+		return 0
+	}
+
+	// Set maxRequest to the minimum of 5 and the current pool value
+	maxRequest := currentPoolValue
+	if maxRequest > 5 {
+		maxRequest = 5
+	}
+
+	// Randomly request between 1 and maxRequest units
+	requestAmount := rand.Intn(maxRequest) + 1
+	if requestAmount <= currentPoolValue {
+		fmt.Printf("%s successfully withdrew %d from the pool\n", mi.GetID(), requestAmount)
+		return requestAmount
+	}
+
+	fmt.Printf("%s withdrawal of %d rejected (pool only has %d)\n",
+		mi.GetID(), requestAmount, currentPoolValue)
 	return 0
 }
 
