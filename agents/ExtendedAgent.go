@@ -53,6 +53,10 @@ func (mi *ExtendedAgent) GetTeamID() uuid.UUID {
 	return mi.teamID
 }
 
+func (mi *ExtendedAgent) GetLastTeamID() uuid.UUID {
+	return mi.LastTeamID
+}
+
 // Can only be called by the server (otherwise other agents will see their true score)
 func (mi *ExtendedAgent) GetTrueScore() int {
 	return mi.score
