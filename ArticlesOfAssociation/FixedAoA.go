@@ -10,13 +10,13 @@ func (f *FixedAoA) GetExpectedContribution(agentId uuid.UUID, agentScore int) in
 	return agentScore
 }
 
-func (f *FixedAoA) SetContributionResult(agentId uuid.UUID, agentScore int, agentContribution int) {}
+func (f *FixedAoA) SetContributionAuditResult(agentId uuid.UUID, agentScore int, agentActualContribution int, agentStatedContribution int) {}
 
 func (f *FixedAoA) GetExpectedWithdrawal(agentId uuid.UUID, agentScore int) int {
-	return agentScore
+	return 2
 }
 
-func (f *FixedAoA) SetWithdrawalResult(agentId uuid.UUID, agentScore int, agentWithdrawal int) {}
+func (f *FixedAoA) SetWithdrawalAuditResult(agentId uuid.UUID, agentScore int, agentActualWithdrawal int, agentStatedWithdrawal int) {}
 
 func (f *FixedAoA) GetAuditCost(commonPool int) int {
 	return 0

@@ -11,9 +11,9 @@ type Vote struct {
 type IArticlesOfAssociation interface {
 	ResetAuditMap()
 	GetExpectedContribution(agentId uuid.UUID, agentScore int) int
-	SetContributionResult(agentId uuid.UUID, agentScore int, agentContribution int)
+	SetContributionAuditResult(agentId uuid.UUID, agentScore int, agentActualContribution int, agentStatedContribution int)
 	GetExpectedWithdrawal(agentId uuid.UUID, agentScore int) int
-	SetWithdrawalResult(agentId uuid.UUID, agentScore int, agentWithdrawal int)
+	SetWithdrawalAuditResult(agentId uuid.UUID, agentScore int, agentActualWithdrawal int, agentStatedWithdrawal int)
 	GetAuditCost(commonPool int) int
 	GetVoteResult(votes []Vote) *uuid.UUID
 }

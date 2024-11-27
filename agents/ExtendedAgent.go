@@ -28,7 +28,6 @@ type ExtendedAgent struct {
 	AoARanking []int
 
 	LastTeamID uuid.UUID // Tracks the last team the agent was part of
-
 }
 
 type AgentConfig struct {
@@ -48,15 +47,17 @@ func GetBaseAgents(funcs agent.IExposedServerFunctions[common.IExtendedAgent], c
 
 // ----------------------- Interface implementation -----------------------
 
-// Getter
+// Get the agent's current team ID
 func (mi *ExtendedAgent) GetTeamID() uuid.UUID {
 	return mi.teamID
 }
 
+// Get the agent's last team ID
 func (mi *ExtendedAgent) GetLastTeamID() uuid.UUID {
 	return mi.LastTeamID
 }
 
+// Get the agent's current score
 // Can only be called by the server (otherwise other agents will see their true score)
 func (mi *ExtendedAgent) GetTrueScore() int {
 	return mi.score
@@ -140,12 +141,14 @@ func (mi *ExtendedAgent) DecideRollAgain() {
 	}
 }
 
-// make a contribution to the common pool
-func (mi *ExtendedAgent) ContributeToCommonPool() int {
+// TODO: TO BE IMPLEMENTED BY TEAM'S AGENT
+// get the agent's actual contribution to the common pool
+// This function MUST return the same value when called multiple times in the same turn
+func (mi *ExtendedAgent) GetActualContribution() int {
 	if mi.HasTeam() {
 		contribution := mi.DecideSelfContribution()
 		if mi.verboseLevel > 6 {
-			fmt.Printf("%s is contributing %d to the common pool\n", mi.GetID(), contribution)
+			fmt.Printf("%s is contributing %d to the common pool and thinks the common pool size is %d\n", mi.GetID(), contribution, mi.server.GetTeam(mi.GetID()).GetCommonPool())
 		}
 		return contribution
 	} else {
@@ -174,10 +177,46 @@ func (mi *ExtendedAgent) DecideSelfContribution() int {
 	}
 }
 
+// get the agent's stated contribution to the common pool
+// TODO: the value returned by this should be broadcasted to the team via a message
+// This function MUST return the same value when called multiple times in the same turn
+func (mi *ExtendedAgent) GetStatedContribution() int {
+	// Hardcoded stated 
+	statedContribution := mi.GetActualContribution()
+	return statedContribution
+
+}
+
 // make withdrawal from common pool
-func (mi *ExtendedAgent) WithdrawFromCommonPool() int {
-	fmt.Printf("%s is withdrawing from the common pool and thinks the common pool size is %d\n", mi.GetID(), mi.server.GetTeam(mi.GetID()).GetCommonPool())
+func (mi *ExtendedAgent) GetActualWithdrawal() int {
+	withdrawal := mi.DecideWithdrawal()
+	fmt.Printf("%s is withdrawing %d from the common pool and thinks the common pool size is %d\n", mi.GetID(), withdrawal, mi.server.GetTeam(mi.GetID()).GetCommonPool())
+	return withdrawal
+}
+
+// TODO: the value returned by this should be broadcasted to the team via a message
+// This function MUST return the same value when called multiple times in the same turn
+func (mi *ExtendedAgent) GetStatedWithdrawal() int {
 	return 0
+}
+
+func (mi *ExtendedAgent) DecideWithdrawal() int {
+	// MVP: withdraw exactly as defined in AoA
+	if mi.server.GetTeam(mi.GetID()).TeamAoA != nil {
+		aoaExpectedWithdrawal := mi.server.GetTeam(mi.GetID()).TeamAoA.GetExpectedWithdrawal(mi.GetID(), mi.GetTrueScore())
+		// double check if score in agent is sufficient (this should be handled by AoA though)
+		commonPool := mi.server.GetTeam(mi.GetID()).GetCommonPool()
+		if commonPool < aoaExpectedWithdrawal {
+			return commonPool
+		}
+		return aoaExpectedWithdrawal
+	} else {
+		if mi.verboseLevel > 6 {
+			// should not happen!
+			fmt.Printf("[WARNING] Agent %s has no AoA, withdrawing 0\n", mi.GetID())
+		}
+		return 0
+	}
 }
 
 // dev function
