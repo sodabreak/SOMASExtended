@@ -89,7 +89,12 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 
 func (cs *EnvironmentServer) RunStartOfIteration(iteration int) {
 	fmt.Printf("--------Start of iteration %v---------\n", iteration)
+    
+    // Initialise random threshold
 	cs.CreateNewRoundScoreThreshold()
+
+    // Revive all dead agents
+    cs.ReviveDeadAgents()
 
 	// start team forming
 	cs.StartAgentTeamForming()
@@ -143,6 +148,17 @@ func (cs *EnvironmentServer) Start() {
 	cs.BaseServer.Start()
 
 	// TODO
+}
+
+func (cs *EnvironmentServer) ReviveDeadAgents() {
+    for _, agent := range cs.deadAgents {
+        fmt.Printf("[server] Agent %v is being revived\n", agent.GetID())
+        agent.SetTrueScore(0)  // new agents start with a score of 0
+        cs.AddAgent(agent)  // re-add the agent to the server map
+    }
+
+    // Clear the slice 
+    cs.deadAgents = cs.deadAgents[:0]
 }
 
 // constructor
@@ -254,17 +270,18 @@ func (cs *EnvironmentServer) KillAgent(agentID uuid.UUID) {
 				// Remove agent from the team
 				team.Agents = append(team.Agents[:i], team.Agents[i+1:]...)
 				cs.teams[teamID] = team
+                // Set the team of the agent to Nil !!!
+                agent.SetTeamID(uuid.Nil)
 				break
 			}
 		}
 		cs.teamsMutex.Unlock()
+
+        // Add the agent to the dead agent list and remove it from the server's agent map
+        cs.deadAgents = append(cs.deadAgents, agent)
+        cs.RemoveAgent(agent)
+	    fmt.Printf("[server] Agent %v killed\n", agentID)
 	}
-
-	// Add the agent to the dead agent list and remove it from the server's agent map
-	cs.deadAgents = append(cs.deadAgents, agent)
-	cs.RemoveAgent(agent)
-
-	fmt.Printf("[server] Agent %v killed\n", agentID)
 }
 
 // is agent dead
