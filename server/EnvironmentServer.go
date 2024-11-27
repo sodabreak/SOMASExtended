@@ -286,16 +286,18 @@ func (cs *EnvironmentServer) KillAgent(agentID uuid.UUID) {
 				// Remove agent from the team
 				team.Agents = append(team.Agents[:i], team.Agents[i+1:]...)
 				cs.teams[teamID] = team
+                // Set the team of the agent to Nil !!!
+                agent.SetTeamID(uuid.Nil)
 				break
 			}
 		}
 		cs.teamsMutex.Unlock()
+
+        // Add the agent to the dead agent list and remove it from the server's agent map
+        cs.deadAgents = append(cs.deadAgents, agent)
+        cs.RemoveAgent(agent)
 	}
-
-	// Add the agent to the dead agent list and remove it from the server's agent map
-    cs.RemoveAgent(agent)
-	cs.deadAgents = append(cs.deadAgents, agent)
-
+	
 	fmt.Printf("[server] Agent %v killed\n", agentID)
 }
 
