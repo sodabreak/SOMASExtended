@@ -149,6 +149,7 @@ func (cs *EnvironmentServer) Start() {
 
 func (cs *EnvironmentServer) ReviveDeadAgents() {
     for _, agent := range cs.deadAgents {
+        fmt.Printf("[server] Agent %v is being revived\n", agent.GetID())
         agent.SetTrueScore(0)  // new agents start with a score of 0
         cs.AddAgent(agent)  // re-add the agent to the server map
     }
@@ -296,9 +297,8 @@ func (cs *EnvironmentServer) KillAgent(agentID uuid.UUID) {
         // Add the agent to the dead agent list and remove it from the server's agent map
         cs.deadAgents = append(cs.deadAgents, agent)
         cs.RemoveAgent(agent)
+	    fmt.Printf("[server] Agent %v killed\n", agentID)
 	}
-	
-	fmt.Printf("[server] Agent %v killed\n", agentID)
 }
 
 // is agent dead
