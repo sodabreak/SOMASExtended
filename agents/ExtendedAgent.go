@@ -181,15 +181,15 @@ func (mi *ExtendedAgent) DecideSelfContribution() int {
 // TODO: the value returned by this should be broadcasted to the team via a message
 // This function MUST return the same value when called multiple times in the same turn
 func (mi *ExtendedAgent) GetStatedContribution() int {
-	// Hardcoded stated 
+	// Hardcoded stated
 	statedContribution := mi.GetActualContribution()
 	return statedContribution
 
 }
 
 // make withdrawal from common pool
-func (mi *ExtendedAgent) GetActualWithdrawal() int {
-	withdrawal := mi.DecideWithdrawal()
+func (mi *ExtendedAgent) GetActualWithdrawal(currentPoolValue int) int {
+	withdrawal := mi.DecideWithdrawal(currentPoolValue)
 	fmt.Printf("%s is withdrawing %d from the common pool and thinks the common pool size is %d\n", mi.GetID(), withdrawal, mi.server.GetTeam(mi.GetID()).GetCommonPool())
 	return withdrawal
 }
@@ -200,14 +200,32 @@ func (mi *ExtendedAgent) GetStatedWithdrawal() int {
 	return 0
 }
 
-func (mi *ExtendedAgent) DecideWithdrawal() int {
+//	func (mi *ExtendedAgent) DecideWithdrawal(currentPoolValue int) int {
+//		// MVP: withdraw exactly as defined in AoA
+//		if mi.server.GetTeam(mi.GetID()).TeamAoA != nil {
+//			aoaExpectedWithdrawal := mi.server.GetTeam(mi.GetID()).TeamAoA.GetExpectedWithdrawal(mi.GetID(), mi.GetTrueScore())
+//			// double check if score in agent is sufficient (this should be handled by AoA though)
+//			commonPool := mi.server.GetTeam(mi.GetID()).GetCommonPool()
+//			if commonPool < aoaExpectedWithdrawal {
+//				return commonPool
+//			}
+//			return aoaExpectedWithdrawal
+//		} else {
+//			if mi.verboseLevel > 6 {
+//				// should not happen!
+//				fmt.Printf("[WARNING] Agent %s has no AoA, withdrawing 0\n", mi.GetID())
+//			}
+//			return 0
+//		}
+//	}
+func (mi *ExtendedAgent) DecideWithdrawal(currentPoolValue int) int {
 	// MVP: withdraw exactly as defined in AoA
 	if mi.server.GetTeam(mi.GetID()).TeamAoA != nil {
+		// 使用传递的 currentPoolValue 而不是再次调用 GetCommonPool
 		aoaExpectedWithdrawal := mi.server.GetTeam(mi.GetID()).TeamAoA.GetExpectedWithdrawal(mi.GetID(), mi.GetTrueScore())
-		// double check if score in agent is sufficient (this should be handled by AoA though)
-		commonPool := mi.server.GetTeam(mi.GetID()).GetCommonPool()
-		if commonPool < aoaExpectedWithdrawal {
-			return commonPool
+
+		if currentPoolValue < aoaExpectedWithdrawal {
+			return currentPoolValue
 		}
 		return aoaExpectedWithdrawal
 	} else {
