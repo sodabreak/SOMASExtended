@@ -10,6 +10,7 @@ type IExtendedAgent interface {
 
 	// Getters
 	GetTeamID() uuid.UUID
+	GetLastTeamID() uuid.UUID
 	GetTrueScore() int
 
 	// Setters
@@ -37,5 +38,4 @@ type IExtendedAgent interface {
 
 	ContributeToCommonPool() int
 	WithdrawFromCommonPool() int
-	SetCommonPoolValue(pool int)
 }
