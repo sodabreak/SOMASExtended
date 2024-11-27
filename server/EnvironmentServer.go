@@ -31,39 +31,56 @@ type EnvironmentServer struct {
 func (cs *EnvironmentServer) RunTurn(i, j int) {
 	fmt.Printf("\nIteration %v, Turn %v, current agent count: %v\n", i, j, len(cs.GetAgentMap()))
 
+	cs.teamsMutex.Lock()
+	defer cs.teamsMutex.Unlock()
 
-	for _, agent := range cs.GetAgentMap() {
-		if !cs.IsAgentDead(agent.GetID()) { // only agents that are alive can roll dice
+	// Agents roll dice and make their contributions for this turn
+	for _, team := range cs.teams {
+		fmt.Println("Running turn for team ", team.TeamID)
+		// Sum of contributions from all agents in the team for this turn
+		agentContributionTotal := 0
+		for _, agentID := range team.Agents {
+			agent := cs.GetAgentMap()[agentID]
 			if agent.GetTeamID() == uuid.Nil {
+				continue
+			}
+			if cs.IsAgentDead(agentID) {
 				continue
 			}
 			agent.StartRollingDice()
-			team := cs.teams[agent.GetTeamID()]
-			if team == nil {
-				continue
-			} // This only happens in case there is one agent left. In such a case, the agent/team should be declared as a winner anyway
 			agentContribution := agent.ContributeToCommonPool()
+			agentContributionTotal += agentContribution
 			agentScore := agent.GetTrueScore()
-			team.SetCommonPool(team.GetCommonPool() + agentContribution)
-			team.SetContributionResult(agent.GetID(), agentScore, agentContribution)
+			// Update audit result for this agent
+			team.SetContributionResult(agentID, agentScore, agentContribution)
 			agent.SetTrueScore(agentScore - agentContribution)
 		}
-	}
-	for _, agent := range cs.GetAgentMap() {
-		if !cs.IsAgentDead(agent.GetID()) {
+
+		// Update common pool with total contribution from this team
+		// .. we only do this after all agentss have contributed to the common pool
+		team.SetCommonPool(team.GetCommonPool() + agentContributionTotal)
+
+		// Sum of withdrawals from all agents in the team for this turn
+		agentWithdrawalTotal := 0
+		// All agents withdraw from common pool for this turn
+		for _, agentID := range team.Agents {
+			agent := cs.GetAgentMap()[agentID]
 			if agent.GetTeamID() == uuid.Nil {
 				continue
 			}
-			team := cs.teams[agent.GetTeamID()]
-			if team == nil {
+			if cs.IsAgentDead(agentID) {
 				continue
-			} // This only happens in case there is one agent left. In such a case, the agent/team should be declared as a winner anyway
+			}
 			agentWithdrawal := agent.WithdrawFromCommonPool()
+			agentWithdrawalTotal += agentWithdrawal
 			agentScore := agent.GetTrueScore()
-			team.SetCommonPool(team.GetCommonPool() - agentWithdrawal)
-			team.SetWithdrawalResult(agent.GetID(), agentScore, agentWithdrawal)
+			// Update audit result for this agent
+			team.SetWithdrawalResult(agentID, agentScore, agentWithdrawal)
 			agent.SetTrueScore(agentScore + agentWithdrawal)
 		}
+		// Update common pool with total withdrawal from this team
+		// .. we only do this after all agents have withdrawn from the common pool
+		team.SetCommonPool(team.GetCommonPool() - agentWithdrawalTotal)
 	}
 }
 
@@ -84,18 +101,13 @@ func (cs *EnvironmentServer) RunStartOfIteration(iteration int) {
 func (cs *EnvironmentServer) AllocateAoAs() {
 	// Iterate over each team
 	for _, team := range cs.teams {
-		// Ranking cache for the team's votes
-		voteSum := []int{0, 0, 0, 0}
-
-		// Iterate over the agents in the team
-		for _, agentID := range team.Agents {
-			// Skip dead agents
-			if cs.IsAgentDead(agentID) {
+		// ranking cache for each team.
+		var voteSum = []int{0,0,0,0}
+		for _, agent := range team.Agents {
+			if cs.IsAgentDead(agent) {
 				continue
 			}
-
-			// Get the agent's AoA ranking and add their votes
-			for aoa, vote := range cs.GetAgentMap()[agentID].GetAoARanking() {
+			for aoa, vote := range cs.GetAgentMap()[agent].GetAoARanking() {
 				voteSum[aoa] += vote
 			}
 		}
