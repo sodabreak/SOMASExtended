@@ -1,0 +1,101 @@
+package aoa
+
+// import "github.com/google/uuid"
+import (
+	"container/list"
+
+	"github.com/google/uuid"
+)
+
+type AuditQueue struct {
+	length int
+	rounds list.List
+}
+
+func NewAuditQueue(length int) *AuditQueue {
+	return &AuditQueue{
+		length: length,
+		rounds: list.List{},
+	}
+}
+
+func (aq *AuditQueue) AddToQueue(auditResult bool) {
+	if aq.length == aq.rounds.Len() {
+		aq.rounds.Remove(aq.rounds.Front())
+	}
+	aq.rounds.PushBack(auditResult)
+}
+
+func (aq *AuditQueue) GetWarnings() int {
+	warnings := 0
+	for e := aq.rounds.Front(); e != nil; e = e.Next() {
+		warnings += e.Value.(int)
+	}
+	return warnings
+}
+
+type Team2AoA struct {
+	AuditMap map[uuid.UUID]*AuditQueue
+	OffenceMap map[uuid.UUID]int
+	Leader uuid.UUID
+}
+
+func (t *Team2AoA) ResetAuditMap() {
+	t.AuditMap = make(map[uuid.UUID]*AuditQueue)
+}
+
+func (t *Team2AoA) GetExpectedContribution(agentId uuid.UUID, agentScore int) int {
+	return agentScore
+}
+
+func (t *Team2AoA) SetContributionAuditResult(agentId uuid.UUID, agentScore int, agentActualContribution int, agentStatedContribution int) {
+	// ignore agentStatedContribution
+	// check if agent actually contributed it's entire score
+	t.AuditMap[agentId].AddToQueue(agentActualContribution != agentScore)
+}
+
+func (t *Team2AoA) GetExpectedWithdrawal(agentId uuid.UUID, agentScore int) int {
+	if agentId == t.Leader {
+		return int(float64(agentScore) * 0.25)
+	}
+	return int(float64(agentScore) * 0.10)
+}
+
+func (t *Team2AoA) SetWithdrawalAuditResult(agentId uuid.UUID, agentScore int, agentActualWithdrawal int, agentStatedWithdrawal int) {
+	if agentId == t.Leader {
+		t.AuditMap[agentId].AddToQueue(float64(agentScore) * 0.25 != float64(agentActualWithdrawal))
+	} else {
+		t.AuditMap[agentId].AddToQueue(float64(agentScore) * 0.10 != float64(agentActualWithdrawal))
+	}
+}
+
+func (t *Team2AoA) GetAuditCost(commonPool int) int {
+	if commonPool < 5 {
+		return 2
+	}
+	return 5 + ((commonPool - 5)/5)
+}
+
+func (t *Team2AoA) GetVoteResult(votes []Vote) *uuid.UUID {
+	voteMap := make(map[uuid.UUID]int)
+	for _, vote := range votes {
+		if vote.IsVote {
+			if vote.VoterID == t.Leader {
+				voteMap[vote.VotedForID] += 2
+			} else {
+				voteMap[vote.VotedForID]++
+			}
+		}
+		if voteMap[vote.VotedForID] > 4 {
+			return &vote.VotedForID
+		}
+	}
+	return &uuid.Nil
+}
+
+func CreateTeam2AoA() IArticlesOfAssociation {
+	return &Team2AoA{
+		AuditMap: make(map[uuid.UUID]*AuditQueue),
+		OffenceMap: make(map[uuid.UUID]int),
+	}
+}
