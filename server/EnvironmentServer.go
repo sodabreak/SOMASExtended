@@ -30,16 +30,16 @@ type EnvironmentServer struct {
 
 // overrides that requires implementation
 func (cs *EnvironmentServer) RunTurn(i, j int) {
-	fmt.Printf("\nIteration %v, Turn %v, current agent count: %v\n", i, j, len(cs.GetAgentMap()))
+	fmt.Printf("\n\nIteration %v, Turn %v, current agent count: %v\n", i, j, len(cs.GetAgentMap()))
 
 	cs.teamsMutex.Lock()
 	defer cs.teamsMutex.Unlock()
 
 	// Agents roll dice and make their contributions for this turn
 	for _, team := range cs.teams {
-		fmt.Println("Running turn for team ", team.TeamID)
+		fmt.Println("\nRunning turn for team ", team.TeamID)
 		// Sum of contributions from all agents in the team for this turn
-		agentContributionTotal := 0
+		agentContributionsTotal := 0
 		for _, agentID := range team.Agents {
 			agent := cs.GetAgentMap()[agentID]
 			if agent.GetTeamID() == uuid.Nil {
@@ -49,20 +49,21 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 				continue
 			}
 			agent.StartRollingDice()
-			agentContribution := agent.ContributeToCommonPool()
-			agentContributionTotal += agentContribution
+			agentActualContribution := agent.GetActualContribution()
+			agentContributionsTotal += agentActualContribution
+			agentStatedContribution := agent.GetStatedContribution()
 			agentScore := agent.GetTrueScore()
 			// Update audit result for this agent
-			team.TeamAoA.SetContributionResult(agentID, agentScore, agentContribution)
-			agent.SetTrueScore(agentScore - agentContribution)
+			team.TeamAoA.SetContributionAuditResult(agentID, agentScore, agentActualContribution, agentStatedContribution)
+			agent.SetTrueScore(agentScore - agentActualContribution)
 		}
 
 		// Update common pool with total contribution from this team
 		// .. we only do this after all agentss have contributed to the common pool
-		team.SetCommonPool(team.GetCommonPool() + agentContributionTotal)
+		team.SetCommonPool(team.GetCommonPool() + agentContributionsTotal)
 
 		// Sum of withdrawals from all agents in the team for this turn
-		agentWithdrawalTotal := 0
+		agentWithdrawalsTotal := 0
 		// All agents withdraw from common pool for this turn
 		for _, agentID := range team.Agents {
 			agent := cs.GetAgentMap()[agentID]
@@ -72,16 +73,17 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 			if cs.IsAgentDead(agentID) {
 				continue
 			}
-			agentWithdrawal := agent.WithdrawFromCommonPool()
-			agentWithdrawalTotal += agentWithdrawal
+			agentActualWithdrawal := agent.GetActualWithdrawal()
+			agentWithdrawalsTotal += agentActualWithdrawal
+			agentStatedWithdrawal := agent.GetStatedWithdrawal()
 			agentScore := agent.GetTrueScore()
 			// Update audit result for this agent
-			team.TeamAoA.SetWithdrawalResult(agentID, agentScore, agentWithdrawal)
-			agent.SetTrueScore(agentScore + agentWithdrawal)
+			team.TeamAoA.SetWithdrawalAuditResult(agentID, agentScore, agentActualWithdrawal, agentStatedWithdrawal)
+			agent.SetTrueScore(agentScore + agentActualWithdrawal)
 		}
 		// Update common pool with total withdrawal from this team
 		// .. we only do this after all agents have withdrawn from the common pool
-		team.SetCommonPool(team.GetCommonPool() - agentWithdrawalTotal)
+		team.SetCommonPool(team.GetCommonPool() - agentWithdrawalsTotal)
 	}
 }
 

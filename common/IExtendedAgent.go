@@ -12,6 +12,10 @@ type IExtendedAgent interface {
 	GetTeamID() uuid.UUID
 	GetLastTeamID() uuid.UUID
 	GetTrueScore() int
+	GetActualContribution() int
+	GetActualWithdrawal() int
+	GetStatedContribution() int
+	GetStatedWithdrawal() int
 
 	// Setters
 	SetTeamID(teamID uuid.UUID)
@@ -35,7 +39,4 @@ type IExtendedAgent interface {
 	LogSelfInfo()
 	GetAoARanking() []int
 	SetAoARanking(Preferences []int)
-
-	ContributeToCommonPool() int
-	WithdrawFromCommonPool() int
 }

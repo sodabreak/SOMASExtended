@@ -48,8 +48,10 @@ func (t *Team2AoA) GetExpectedContribution(agentId uuid.UUID, agentScore int) in
 	return agentScore
 }
 
-func (t *Team2AoA) SetContributionResult(agentId uuid.UUID, agentScore int, agentContribution int) {
-	t.AuditMap[agentId].AddToQueue(agentContribution != agentScore)
+func (t *Team2AoA) SetContributionAuditResult(agentId uuid.UUID, agentScore int, agentActualContribution int, agentStatedContribution int) {
+	// ignore agentStatedContribution
+	// check if agent actually contributed it's entire score
+	t.AuditMap[agentId].AddToQueue(agentActualContribution != agentScore)
 }
 
 func (t *Team2AoA) GetExpectedWithdrawal(agentId uuid.UUID, agentScore int) int {
@@ -59,11 +61,11 @@ func (t *Team2AoA) GetExpectedWithdrawal(agentId uuid.UUID, agentScore int) int 
 	return int(float64(agentScore) * 0.10)
 }
 
-func (t *Team2AoA) SetWithdrawalResult(agentId uuid.UUID, agentScore int, agentWithdrawal int) {
+func (t *Team2AoA) SetWithdrawalAuditResult(agentId uuid.UUID, agentScore int, agentActualWithdrawal int, agentStatedWithdrawal int) {
 	if agentId == t.Leader {
-		t.AuditMap[agentId].AddToQueue(float64(agentScore) * 0.25 != float64(agentWithdrawal))
+		t.AuditMap[agentId].AddToQueue(float64(agentScore) * 0.25 != float64(agentActualWithdrawal))
 	} else {
-		t.AuditMap[agentId].AddToQueue(float64(agentScore) * 0.10 != float64(agentWithdrawal))
+		t.AuditMap[agentId].AddToQueue(float64(agentScore) * 0.10 != float64(agentActualWithdrawal))
 	}
 }
 
