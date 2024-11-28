@@ -25,11 +25,11 @@ func (f *FixedAoA) GetContributionAuditResult(agentId uuid.UUID) bool {
 	return f.ContributionAuditMap[agentId]
 }
 
-func (f *FixedAoA) GetExpectedWithdrawal(agentId uuid.UUID, agentScore int) int {
+func (f *FixedAoA) GetExpectedWithdrawal(agentId uuid.UUID, agentScore int, commonPool int) int {
 	return 2
 }
 
-func (f *FixedAoA) SetWithdrawalAuditResult(agentId uuid.UUID, agentScore int, agentActualWithdrawal int, agentStatedWithdrawal int) {
+func (f *FixedAoA) SetWithdrawalAuditResult(agentId uuid.UUID, agentScore int, agentActualWithdrawal int, agentStatedWithdrawal int, commonPool int) {
 }
 
 func (f *FixedAoA) GetWithdrawalAuditResult(agentId uuid.UUID) bool {
@@ -62,6 +62,9 @@ func (t *FixedAoA) GetWithdrawalOrder(agentIDs []uuid.UUID) []uuid.UUID {
 	})
 
 	return shuffledAgents
+}
+
+func (t *FixedAoA) RunAoAStuff() {
 }
 
 func CreateFixedAoA() IArticlesOfAssociation {
