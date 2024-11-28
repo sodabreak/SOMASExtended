@@ -59,12 +59,9 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 		}
 
 		// Update common pool with total contribution from this team
-		// .. we only do this after all agentss have contributed to the common pool
 		team.SetCommonPool(team.GetCommonPool() + agentContributionsTotal)
 
-		// Now that agents can see the latest common pool, Initiate Contribution Audit vote
-		// 1. Gather all the votes 
-		// 		Call a function in the AoA
+		// Initiate Contribution Audit vote
 		contributionAuditVotes := []aoa.Vote{}
 		for _, agentID := range team.Agents {
 			agent := cs.GetAgentMap()[agentID]
@@ -72,12 +69,9 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 			contributionAuditVotes = append(contributionAuditVotes, vote)
 		}	
 
-		// 2. if there is an agent which should be audited according to the AoA e.g. decided by majority vote
-		// 		agent_x did cheat = team.teamAoA.AuditMap[agent_x_id]
-		// 		call a setter function on all agents to set the audit result for this turn's contribution
+		// Execute Contribution Audit if necessary
 		if agentToAudit := team.TeamAoA.GetVoteResult(contributionAuditVotes); agentToAudit != uuid.Nil{
 			auditResult := team.TeamAoA.GetContributionAuditResult(agentToAudit)
-			// Agents are free to update their strategy based on the audit results by reading the audit
 			for _, agentID := range team.Agents {
 				agent := cs.GetAgentMap()[agentID]
 				agent.SetAgentContributionAuditResult(agentToAudit, auditResult)
@@ -108,10 +102,24 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 		team.SetCommonPool(team.GetCommonPool() - agentWithdrawalsTotal)
 
 		// Initiate Withdrawal Audit vote
-		// ...
+		withdrawalAuditVotes := []aoa.Vote{}
+		for _, agentID := range team.Agents {
+			agent := cs.GetAgentMap()[agentID]
+			vote := agent.GetWithdrawalAuditVote()
+			withdrawalAuditVotes = append(withdrawalAuditVotes, vote)
+		}
+
+		// Execute Withdrawal Audit if necessary
+		if agentToAudit := team.TeamAoA.GetVoteResult(withdrawalAuditVotes); agentToAudit != uuid.Nil{
+			auditResult := team.TeamAoA.GetWithdrawalAuditResult(agentToAudit)
+			for _, agentID := range team.Agents {
+				agent := cs.GetAgentMap()[agentID]
+				agent.SetAgentWithdrawalAuditResult(agentToAudit, auditResult)
+			}
+		}
 	}
 	
-	// Reallocate agents who left their teams during the turn
+	// TODO: Reallocate agents who left their teams during the turn
 }
 
 
