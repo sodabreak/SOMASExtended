@@ -8,7 +8,7 @@ import (
 
 	common "SOMAS_Extended/common"
 
-	// TODO: 
+	// TODO:
 
 	"github.com/MattSScott/basePlatformSOMAS/v2/pkg/agent"
 	"github.com/MattSScott/basePlatformSOMAS/v2/pkg/message"
