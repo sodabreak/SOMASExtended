@@ -186,13 +186,12 @@ func (mi *ExtendedAgent) GetStatedContribution(instance common.IExtendedAgent) i
 	// Hardcoded stated
 	statedContribution := instance.GetActualContribution(instance)
 	return statedContribution
-
 }
 
 // make withdrawal from common pool
 func (mi *ExtendedAgent) GetActualWithdrawal(instance common.IExtendedAgent) int {
 	currentPool := mi.server.GetTeam(mi.GetID()).GetCommonPool()
-	withdrawal := mi.DecideWithdrawal()
+	withdrawal := instance.DecideWithdrawal()
 	fmt.Printf("%s is withdrawing %d from the common pool of size %d\n", mi.GetID(), withdrawal, currentPool)
 	return withdrawal
 }
@@ -201,7 +200,7 @@ func (mi *ExtendedAgent) GetActualWithdrawal(instance common.IExtendedAgent) int
 // This function MUST return the same value when called multiple times in the same turn
 func (mi *ExtendedAgent) GetStatedWithdrawal(instance common.IExtendedAgent) int {
 	// Currently, assume stated withdrawal matches actual withdrawal
-	return mi.DecideWithdrawal()
+	return instance.DecideWithdrawal()
 }
 
 // Decide the withdrawal amount based on AoA and current pool size
