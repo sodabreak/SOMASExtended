@@ -203,7 +203,7 @@ func (mi *ExtendedAgent) GetStatedWithdrawal() int {
 func (mi *ExtendedAgent) DecideWithdrawal(currentPoolValue int) int {
 	// MVP: withdraw exactly as defined in AoA
 	if mi.server.GetTeam(mi.GetID()).TeamAoA != nil {
-		// 使用传递的 currentPoolValue 而不是再次调用 GetCommonPool
+		// use currentPoolValue instead of GetCommonPool
 		aoaExpectedWithdrawal := mi.server.GetTeam(mi.GetID()).TeamAoA.GetExpectedWithdrawal(mi.GetID(), mi.GetTrueScore())
 
 		if currentPoolValue < aoaExpectedWithdrawal {
