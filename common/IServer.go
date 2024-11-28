@@ -17,6 +17,7 @@ type IServer interface {
 	StartAgentTeamForming()
 
 	GetTeam(agentID uuid.UUID) *Team
+	GetTeamFromTeamID(teamID uuid.UUID) *Team
 
 	// Debug functions
 	LogAgentStatus()

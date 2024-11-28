@@ -23,7 +23,7 @@ const MajorityVoteThreshold float32 = 0.7
  */
 func (cs *EnvironmentServer) RequestOrphanEntry(orphanID, teamID uuid.UUID, entryThreshold float32) bool {
 	// Get the team and the current number of team members
-	team := cs.GetTeam(teamID)
+	team := cs.GetTeamFromTeamID(teamID)
 	agent_map := cs.GetAgentMap()
 
 	num_members := len(team.Agents)
