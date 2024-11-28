@@ -23,7 +23,7 @@ type EnvironmentServer struct {
 
 	roundScoreThreshold int
 	deadAgents          []common.IExtendedAgent
-    orphanPool OrphanPoolType
+	orphanPool          OrphanPoolType
 
 	// set of options for team strategies (agents rank these options)
 	aoaMenu []aoa.IArticlesOfAssociation
@@ -250,25 +250,24 @@ func (cs *EnvironmentServer) LogAgentStatus() {
 	}
 }
 
-/* 
+/*
 * Print the contents of the orphan pool. Careful as this will not necessarily
-* print the elements in the order that you added them. 
-*/
+* print the elements in the order that you added them.
+ */
 func (cs *EnvironmentServer) PrintOrphanPool() {
-    for i, v := range cs.orphanPool {
-        // truncate the UUIDs to make it easier to read
-        shortAgentId := i.String()[:8]
-        shortTeamIds := make([]string, len(v))
+	for i, v := range cs.orphanPool {
+		// truncate the UUIDs to make it easier to read
+		shortAgentId := i.String()[:8]
+		shortTeamIds := make([]string, len(v))
 
-        // go over all the teams in the wishlist and add to shortened IDs
-        for _, teamID := range v {
-            shortTeamIds = append(shortTeamIds, teamID.String()[:8])
-        }
+		// go over all the teams in the wishlist and add to shortened IDs
+		for _, teamID := range v {
+			shortTeamIds = append(shortTeamIds, teamID.String()[:8])
+		}
 
-        fmt.Println(shortAgentId, " Wants to join : ", shortTeamIds)
-    }
+		fmt.Println(shortAgentId, " Wants to join : ", shortTeamIds)
+	}
 }
-
 
 // pretty logging to show all team status
 func (cs *EnvironmentServer) LogTeamStatus() {

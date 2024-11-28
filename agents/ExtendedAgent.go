@@ -455,10 +455,10 @@ func (mi *ExtendedAgent) GetAoARanking() []int {
 /*
 * Decide whether to allow an agent into the team. This will be part of the group
 * strategy, and should be implemented by individual groups. During testing this
-* function is mocked. 
-*/
+* function is mocked.
+ */
 func (mi *ExtendedAgent) VoteOnAgentEntry(candidateID uuid.UUID) bool {
-    // TODO: Implement strategy for accepting an agent into the team. 
-    // Return true to accept them, false to not accept them. 
-    return true
+	// TODO: Implement strategy for accepting an agent into the team.
+	// Return true to accept them, false to not accept them.
+	return true
 }
