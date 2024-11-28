@@ -203,9 +203,9 @@ func (mi *ExtendedAgent) GetStatedWithdrawal() int {
 func (mi *ExtendedAgent) DecideWithdrawal() int {
 	// MVP: withdraw exactly as defined in AoA
 	if mi.server.GetTeam(mi.GetID()).TeamAoA != nil {
-		aoaExpectedWithdrawal := mi.server.GetTeam(mi.GetID()).TeamAoA.GetExpectedWithdrawal(mi.GetID(), mi.GetTrueScore())
 		// double check if score in agent is sufficient (this should be handled by AoA though)
 		commonPool := mi.server.GetTeam(mi.GetID()).GetCommonPool()
+		aoaExpectedWithdrawal := mi.server.GetTeam(mi.GetID()).TeamAoA.GetExpectedWithdrawal(mi.GetID(), mi.GetTrueScore(), commonPool)
 		if commonPool < aoaExpectedWithdrawal {
 			return commonPool
 		}
