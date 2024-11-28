@@ -59,8 +59,24 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 		}
 
 		// Update common pool with total contribution from this team
-		// .. we only do this after all agentss have contributed to the common pool
 		team.SetCommonPool(team.GetCommonPool() + agentContributionsTotal)
+
+		// Initiate Contribution Audit vote
+		contributionAuditVotes := []aoa.Vote{}
+		for _, agentID := range team.Agents {
+			agent := cs.GetAgentMap()[agentID]
+			vote := agent.GetContributionAuditVote()
+			contributionAuditVotes = append(contributionAuditVotes, vote)
+		}
+
+		// Execute Contribution Audit if necessary
+		if agentToAudit := team.TeamAoA.GetVoteResult(contributionAuditVotes); agentToAudit != uuid.Nil {
+			auditResult := team.TeamAoA.GetContributionAuditResult(agentToAudit)
+			for _, agentID := range team.Agents {
+				agent := cs.GetAgentMap()[agentID]
+				agent.SetAgentContributionAuditResult(agentToAudit, auditResult)
+			}
+		}
 
 		// Sum of withdrawals from all agents in the team for this turn
 		agentWithdrawalsTotal := 0
@@ -84,7 +100,26 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 		// Update common pool with total withdrawal from this team
 		// .. we only do this after all agents have withdrawn from the common pool
 		team.SetCommonPool(team.GetCommonPool() - agentWithdrawalsTotal)
+
+		// Initiate Withdrawal Audit vote
+		withdrawalAuditVotes := []aoa.Vote{}
+		for _, agentID := range team.Agents {
+			agent := cs.GetAgentMap()[agentID]
+			vote := agent.GetWithdrawalAuditVote()
+			withdrawalAuditVotes = append(withdrawalAuditVotes, vote)
+		}
+
+		// Execute Withdrawal Audit if necessary
+		if agentToAudit := team.TeamAoA.GetVoteResult(withdrawalAuditVotes); agentToAudit != uuid.Nil {
+			auditResult := team.TeamAoA.GetWithdrawalAuditResult(agentToAudit)
+			for _, agentID := range team.Agents {
+				agent := cs.GetAgentMap()[agentID]
+				agent.SetAgentWithdrawalAuditResult(agentToAudit, auditResult)
+			}
+		}
 	}
+
+	// TODO: Reallocate agents who left their teams during the turn
 }
 
 func (cs *EnvironmentServer) RunStartOfIteration(iteration int) {

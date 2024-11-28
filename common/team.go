@@ -1,6 +1,7 @@
 package common
 
 import (
+	// TODO: should it be structured this way?
 	aoa "SOMAS_Extended/ArticlesOfAssociation"
 
 	"github.com/google/uuid"
@@ -14,6 +15,14 @@ type Team struct {
 	commonPool int
 }
 
+func (team *Team) GetCommonPool() int {
+	return team.commonPool
+}
+
+func (team *Team) SetCommonPool(amount int) {
+	team.commonPool = amount
+}
+
 // constructor: NewTeam creates a new Team with a unique TeamID and initializes other fields as blank.
 func NewTeam(teamID uuid.UUID) *Team {
 	teamAoA := aoa.CreateFixedAoA()
@@ -23,12 +32,4 @@ func NewTeam(teamID uuid.UUID) *Team {
 		Agents:     []uuid.UUID{}, // Initialize an empty slice of agent UUIDs
 		TeamAoA:    teamAoA,       // Initialize strategy as 0
 	}
-}
-
-func (team *Team) GetCommonPool() int {
-	return team.commonPool
-}
-
-func (team *Team) SetCommonPool(amount int) {
-	team.commonPool = amount
 }
