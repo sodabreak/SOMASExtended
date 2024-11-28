@@ -36,81 +36,66 @@ func (pool orphanPool) Print() {
 }
 
 /* 
-* Ask all the agents in a team if they would be willing to accept an orphan into the team
+* Ask all the agents in a team if they would be willing to accept an orphan
+* into the team. This function accepts a threshold, that is used to determine
+* whether to grant entry or not. For example, a threshold of 0.7 means that at
+* least 70% of agents in the team have to be willing to accept the orphan. 
 */
-func (cs *EnvironmentServer) RequestOrphanEntry(orphanID, teamID uuid.UUID, entryThreshold) bool {
-    // todo
-    // todo
+func (cs *EnvironmentServer) RequestOrphanEntry(orphanID, teamID uuid.UUID, entryThreshold float32) bool {
+    // Get the team and the current number of team members
+    team := cs.GetTeam(teamID)
+    agent_map := cs.GetAgentMap()
+
+    num_members := len(team.Agents) 
+    total_votes := 0
+
+    // For each agent in the team
+    for _, agentID := range team.Agents {
+        // Get their vote
+        vote := agent_map[agentID].VoteOnAgentEntry(agentID)
+        // increment the total votes if they vote 'yes'
+        if vote { total_votes++ }
+    }
+
+    // Calculate the acceptance ratio and return 'yes' only if enough of the
+    // team has voted to accept. 
+    acceptance := float32(total_votes) / float32(num_members)
+    return (acceptance >= entryThreshold)
 }
 
-/*
-* Return a function (closure) for counting up the total votes in a team. 
-*/
-func voteAdder() func(bool) int {
-    // An instance of this 'votes' var will be created for each closure
-    // created. Whenever that closure is called, it will increment its own copy
-    // of votes! No need to keep data in another data structure. 
-    votes := 0
-    return func(agent_vote bool) int {
-        // increment the total number of votes only if the agent returned
-        // true, i.e. 'yes I will accept this member into the team'
-        if agent_vote { votes += 1 }
-        return votes
-    }
-}
 
 /*
 * Go through the pool and attempt to allocate each of the orphans to a team,
 * based on the preference they have expressed.
 */
-func (bds * BaseDiceServer) AllocateOrphans() {
+func (cs *EnvironmentServer) AllocateOrphans() {
+    agent_map := cs.GetAgentMap()
+
+    // Create pool for keeping track of which orphans have not been allocated.
+    // This is because we want to only keep the unallocated orphans in the
+    // pool. This is the safer alternative to deleting from the pool as we are
+    // iterating through it. 
+    unallocated := make(orphanPool) 
+
     // for each orphan currently in the pool / shelter
-    for orphan, teamsList := range pool {
+    for orphanID, teamsList := range pool {
         // for each team that orphan wants to join
         for _, teamID := range teamsList {
-            // get the members of that team, if the team exists
-            team, ok := bds.teams[teamID]
-            if !ok { 
-                // if the orphan is trying to join a team that does not exist,
-                // make a not of this but do not kill the program. 
-                fmt.Print("Orphan ", orphan, " tried to join team ", teamID, " which does not exist")
-                continue 
+            accepted := cs.RequestOrphanEntry(orphanID, teamID, MajorityVoteThreshold) 
+            // If the team has voted to accept the orphan
+            if accepted {
+                orphan := agent_map[orphanID]
+                orphan.SetTeamID(teamID) // Update agent's knowledge of its team
+                cs.AddAgentToTeam(orphanID, teamID) // Update team's knowledge of its agents
+                delete(pool, orphanID) // remove the agent from the orphan pool
             }
-            // otherwise, add the vote of each member
-            adder := voteAdder()
-            members := team.GetTeamMembers()
-            var votes int
-            for _, agent := range members {
-                votes = adder(GetAgentVoteFromId(orphan, agent))
-            }
-
-            // calculate the percentage of agents that voted yes
-            acceptancePercentage := float32(votes) / float32(len(members))
-            
-            // add agent to team only if acceptance is above percentage
-            if acceptancePercentage >= MajorityVoteThreshold {
-                // add the orphan to the team
-                team.AddMember(orphan) 
-                // tell the orphan what team it now belongs to
-                bds.GetAgentMap()[orphan].SetTeam(team) 
-                // move onto the next orphan in the pool
-                delete(pool, orphan)
-                break
-            }
+            // Otherwise, continue to the next team in the preference list. 
         }
-    }
-}
 
-// test code ---------------------------------------
-
-func RunTests() {
-
-    pool = orphanPool{
-        uuid.New(): {uuid.New(), uuid.New(), uuid.New()},
-        uuid.New(): {uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New()},
-        uuid.New(): {}, // outcast, does not want to join any team. 
-        uuid.New(): {uuid.New()}, 
+        unallocated[orphanID] = teamsList // add to unallocated
+        fmt.Printf("%v remains in the orphan pool after allocation...\n", orphanID)
     }
 
-    pool.Print()
+    // Assign the unallocated pool as the new orphan pool.
+    pool = unallocated
 }
