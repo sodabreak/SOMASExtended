@@ -27,7 +27,6 @@ type IExtendedAgent interface {
 	SetTrueScore(score int)
 	SetAgentContributionAuditResult(agentID uuid.UUID, result bool)
 	SetAgentWithdrawalAuditResult(agentID uuid.UUID, result bool)
-
 	DecideStick()
 	DecideRollAgain()
 
