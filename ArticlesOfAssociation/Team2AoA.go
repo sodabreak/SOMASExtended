@@ -35,9 +35,9 @@ func (aq *AuditQueue) GetWarnings() int {
 }
 
 type Team2AoA struct {
-	AuditMap map[uuid.UUID]*AuditQueue
+	AuditMap   map[uuid.UUID]*AuditQueue
 	OffenceMap map[uuid.UUID]int
-	Leader uuid.UUID
+	Leader     uuid.UUID
 }
 
 func (t *Team2AoA) ResetAuditMap() {
@@ -63,9 +63,9 @@ func (t *Team2AoA) GetExpectedWithdrawal(agentId uuid.UUID, agentScore int) int 
 
 func (t *Team2AoA) SetWithdrawalAuditResult(agentId uuid.UUID, agentScore int, agentActualWithdrawal int, agentStatedWithdrawal int) {
 	if agentId == t.Leader {
-		t.AuditMap[agentId].AddToQueue(float64(agentScore) * 0.25 != float64(agentActualWithdrawal))
+		t.AuditMap[agentId].AddToQueue(float64(agentScore)*0.25 != float64(agentActualWithdrawal))
 	} else {
-		t.AuditMap[agentId].AddToQueue(float64(agentScore) * 0.10 != float64(agentActualWithdrawal))
+		t.AuditMap[agentId].AddToQueue(float64(agentScore)*0.10 != float64(agentActualWithdrawal))
 	}
 }
 
@@ -73,7 +73,7 @@ func (t *Team2AoA) GetAuditCost(commonPool int) int {
 	if commonPool < 5 {
 		return 2
 	}
-	return 5 + ((commonPool - 5)/5)
+	return 5 + ((commonPool - 5) / 5)
 }
 
 func (t *Team2AoA) GetVoteResult(votes []Vote) *uuid.UUID {
@@ -95,7 +95,7 @@ func (t *Team2AoA) GetVoteResult(votes []Vote) *uuid.UUID {
 
 func CreateTeam2AoA() IArticlesOfAssociation {
 	return &Team2AoA{
-		AuditMap: make(map[uuid.UUID]*AuditQueue),
+		AuditMap:   make(map[uuid.UUID]*AuditQueue),
 		OffenceMap: make(map[uuid.UUID]int),
 	}
 }
