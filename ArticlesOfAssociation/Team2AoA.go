@@ -95,25 +95,26 @@ func (t *Team2AoA) GetVoteResult(votes []Vote) *uuid.UUID {
 	return &uuid.Nil
 }
 
-func CreateTeam2AoA() IArticlesOfAssociation {
-	return &Team2AoA{
-		AuditMap:   make(map[uuid.UUID]*AuditQueue),
-		OffenceMap: make(map[uuid.UUID]int),
-	}
-}
-
 func (t *Team2AoA) GetWithdrawalOrder(agentIDs []uuid.UUID) []uuid.UUID {
 	// Seed the random number generator to ensure different shuffles each time
 	rand.Seed(time.Now().UnixNano())
-
+	
 	// Create a copy of the agentIDs to avoid modifying the original list
 	shuffledAgents := make([]uuid.UUID, len(agentIDs))
 	copy(shuffledAgents, agentIDs)
-
+	
 	// Shuffle the agent list
 	rand.Shuffle(len(shuffledAgents), func(i, j int) {
 		shuffledAgents[i], shuffledAgents[j] = shuffledAgents[j], shuffledAgents[i]
 	})
 
 	return shuffledAgents
+}
+
+
+func CreateTeam2AoA() IArticlesOfAssociation {
+	return &Team2AoA{
+		AuditMap:   make(map[uuid.UUID]*AuditQueue),
+		OffenceMap: make(map[uuid.UUID]int),
+	}
 }

@@ -188,23 +188,25 @@ func (mi *ExtendedAgent) GetStatedContribution() int {
 }
 
 // make withdrawal from common pool
-func (mi *ExtendedAgent) GetActualWithdrawal(currentPool int) int {
-	withdrawal := mi.DecideWithdrawal(currentPool)
+func (mi *ExtendedAgent) GetActualWithdrawal() int {
+	withdrawal := mi.DecideWithdrawal()
+	currentPool := mi.server.GetTeam(mi.GetID()).GetCommonPool()
 	fmt.Printf("%s is withdrawing %d from the common pool of size %d\n", mi.GetID(), withdrawal, currentPool)
 	return withdrawal
 }
 
 // The value returned by this should be broadcasted to the team via a message
 // This function MUST return the same value when called multiple times in the same turn
-func (mi *ExtendedAgent) GetStatedWithdrawal(currentPool int) int {
+func (mi *ExtendedAgent) GetStatedWithdrawal() int {
 	// Currently, assume stated withdrawal matches actual withdrawal
-	return mi.DecideWithdrawal(currentPool)
+	return mi.DecideWithdrawal()
 }
 
 // Decide the withdrawal amount based on AoA and current pool size
-func (mi *ExtendedAgent) DecideWithdrawal(currentPool int) int {
+func (mi *ExtendedAgent) DecideWithdrawal() int {
 	if mi.server.GetTeam(mi.GetID()).TeamAoA != nil {
 		aoaExpectedWithdrawal := mi.server.GetTeam(mi.GetID()).TeamAoA.GetExpectedWithdrawal(mi.GetID(), mi.GetTrueScore())
+		currentPool := mi.server.GetTeam(mi.GetID()).GetCommonPool()
 		if currentPool < aoaExpectedWithdrawal {
 			return currentPool
 		}

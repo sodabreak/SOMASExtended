@@ -16,6 +16,7 @@ type IArticlesOfAssociation interface {
 	SetWithdrawalAuditResult(agentId uuid.UUID, agentScore int, agentActualWithdrawal int, agentStatedWithdrawal int)
 	GetAuditCost(commonPool int) int
 	GetVoteResult(votes []Vote) *uuid.UUID
+	GetWithdrawalOrder(agentIDs []uuid.UUID) []uuid.UUID
 }
 
 func CreateVote(isVote bool, voterId uuid.UUID, votedForId uuid.UUID) Vote {

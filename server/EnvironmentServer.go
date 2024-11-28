@@ -54,20 +54,12 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 		}
 
 		// Update common pool with total contribution from this team
+		// 	Agents do not get to see the common pool before deciding their contribution
+		//  Different to the withdrawal phase!
 		team.SetCommonPool(team.GetCommonPool() + agentContributionsTotal)
 
-		// Sum of withdrawals from all agents in the team for this turn
-		agentWithdrawalsTotal := 0
-
-		// Randomize the order of agents for withdrawals
-		shuffledAgents := make([]uuid.UUID, len(team.Agents))
-		copy(shuffledAgents, team.Agents)
-		rand.Shuffle(len(shuffledAgents), func(i, j int) {
-			shuffledAgents[i], shuffledAgents[j] = shuffledAgents[j], shuffledAgents[i]
-		})
-
-		// Agents withdraw from the common pool in random order
-		for _, agentID := range shuffledAgents {
+		orderedAgents := team.TeamAoA.GetWithdrawalOrder(team.Agents)
+		for _, agentID := range orderedAgents {
 			agent := cs.GetAgentMap()[agentID]
 			if agent.GetTeamID() == uuid.Nil || cs.IsAgentDead(agentID) {
 				continue
@@ -75,18 +67,18 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 
 			// Pass the current pool value to agent's methods
 			currentPool := team.GetCommonPool()
-			agentActualWithdrawal := agent.GetActualWithdrawal(currentPool)
+			agentActualWithdrawal := agent.GetActualWithdrawal()
 			if agentActualWithdrawal > currentPool {
 				agentActualWithdrawal = currentPool // Ensure withdrawal does not exceed available pool
 			}
-			agentWithdrawalsTotal += agentActualWithdrawal
-			agentStatedWithdrawal := agent.GetStatedWithdrawal(currentPool)
+			agentStatedWithdrawal := agent.GetStatedWithdrawal()
 			agentScore := agent.GetTrueScore()
 			// Update audit result for this agent
 			team.TeamAoA.SetWithdrawalAuditResult(agentID, agentScore, agentActualWithdrawal, agentStatedWithdrawal)
 			agent.SetTrueScore(agentScore + agentActualWithdrawal)
 
-			// Update the common pool after each withdrawal
+			// Update the common pool after each withdrawal so agents can see the updated pool before deciding their withdrawal.
+			//  Different to the contribution phase!
 			team.SetCommonPool(currentPool - agentActualWithdrawal)
 			fmt.Printf("[server] Agent %v withdrew %v. Remaining pool: %v\n", agentID, agentActualWithdrawal, team.GetCommonPool())
 		}

@@ -13,9 +13,9 @@ type IExtendedAgent interface {
 	GetLastTeamID() uuid.UUID
 	GetTrueScore() int
 	GetActualContribution() int
-	GetActualWithdrawal(poolSize int) int
+	GetActualWithdrawal() int
 	GetStatedContribution() int
-	GetStatedWithdrawal(poolSize int) int
+	GetStatedWithdrawal() int
 
 	// Setters
 	SetTeamID(teamID uuid.UUID)
