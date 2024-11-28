@@ -20,18 +20,17 @@ func (f *FixedAoA) GetExpectedContribution(agentId uuid.UUID, agentScore int) in
 func (f *FixedAoA) SetContributionAuditResult(agentId uuid.UUID, agentScore int, agentActualContribution int, agentStatedContribution int) {
 }
 
-
 func (f *FixedAoA) GetContributionAuditResult(agentId uuid.UUID) bool {
 	// true means agent failed the audit (cheated)
 	return f.ContributionAuditMap[agentId]
 }
 
-
 func (f *FixedAoA) GetExpectedWithdrawal(agentId uuid.UUID, agentScore int, commonPool int) int {
 	return 2
 }
 
-func (f *FixedAoA) SetWithdrawalAuditResult(agentId uuid.UUID, agentScore int, agentActualWithdrawal int, agentStatedWithdrawal int, commonPool int) {}
+func (f *FixedAoA) SetWithdrawalAuditResult(agentId uuid.UUID, agentScore int, agentActualWithdrawal int, agentStatedWithdrawal int, commonPool int) {
+}
 
 func (f *FixedAoA) GetWithdrawalAuditResult(agentId uuid.UUID) bool {
 	// true means agent failed the audit (cheated)

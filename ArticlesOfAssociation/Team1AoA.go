@@ -85,4 +85,3 @@ func CreateTeam1AoA() IArticlesOfAssociation {
 		withdrawalPerRank: withdrawalPerRank,
 	}
 }
-

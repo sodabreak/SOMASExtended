@@ -61,7 +61,6 @@ func (t *Team2AoA) SetContributionAuditResult(agentId uuid.UUID, agentScore int,
 	t.AuditMap[agentId].AddToQueue(agentActualContribution != agentScore)
 }
 
-
 func (t *Team2AoA) GetWithdrawalAuditResult(agentId uuid.UUID) bool {
 	return false
 }
