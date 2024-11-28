@@ -15,7 +15,7 @@ type IArticlesOfAssociation interface {
 	GetVoteResult(votes []Vote) uuid.UUID
 	GetContributionAuditResult(agentId uuid.UUID) bool
 	GetWithdrawalAuditResult(agentId uuid.UUID) bool
-	
+
 	SetContributionAuditResult(agentId uuid.UUID, agentScore int, agentActualContribution int, agentStatedContribution int)
 	SetWithdrawalAuditResult(agentId uuid.UUID, agentScore int, agentActualWithdrawal int, agentStatedWithdrawal int)
 }

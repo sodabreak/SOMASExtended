@@ -67,17 +67,17 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 			agent := cs.GetAgentMap()[agentID]
 			vote := agent.GetContributionAuditVote()
 			contributionAuditVotes = append(contributionAuditVotes, vote)
-		}	
+		}
 
 		// Execute Contribution Audit if necessary
-		if agentToAudit := team.TeamAoA.GetVoteResult(contributionAuditVotes); agentToAudit != uuid.Nil{
+		if agentToAudit := team.TeamAoA.GetVoteResult(contributionAuditVotes); agentToAudit != uuid.Nil {
 			auditResult := team.TeamAoA.GetContributionAuditResult(agentToAudit)
 			for _, agentID := range team.Agents {
 				agent := cs.GetAgentMap()[agentID]
 				agent.SetAgentContributionAuditResult(agentToAudit, auditResult)
 			}
 		}
-		
+
 		// Sum of withdrawals from all agents in the team for this turn
 		agentWithdrawalsTotal := 0
 		// All agents withdraw from common pool for this turn
@@ -110,7 +110,7 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 		}
 
 		// Execute Withdrawal Audit if necessary
-		if agentToAudit := team.TeamAoA.GetVoteResult(withdrawalAuditVotes); agentToAudit != uuid.Nil{
+		if agentToAudit := team.TeamAoA.GetVoteResult(withdrawalAuditVotes); agentToAudit != uuid.Nil {
 			auditResult := team.TeamAoA.GetWithdrawalAuditResult(agentToAudit)
 			for _, agentID := range team.Agents {
 				agent := cs.GetAgentMap()[agentID]
@@ -118,10 +118,9 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 			}
 		}
 	}
-	
+
 	// TODO: Reallocate agents who left their teams during the turn
 }
-
 
 func (cs *EnvironmentServer) RunStartOfIteration(iteration int) {
 	fmt.Printf("--------Start of iteration %v---------\n", iteration)

@@ -4,9 +4,8 @@ import "github.com/google/uuid"
 
 type FixedAoA struct {
 	ContributionAuditMap map[uuid.UUID]bool
-	WithdrawalAuditMap map[uuid.UUID]bool
+	WithdrawalAuditMap   map[uuid.UUID]bool
 }
-
 
 func (f *FixedAoA) ResetAuditMap() {}
 

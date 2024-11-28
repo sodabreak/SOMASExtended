@@ -1,9 +1,9 @@
 package common
 
 import (
+	aoa "SOMAS_Extended/ArticlesOfAssociation"
 	"github.com/MattSScott/basePlatformSOMAS/v2/pkg/agent"
 	"github.com/google/uuid"
-	aoa "SOMAS_Extended/ArticlesOfAssociation"
 )
 
 type IExtendedAgent interface {

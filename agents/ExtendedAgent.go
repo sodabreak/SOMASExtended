@@ -31,7 +31,7 @@ type ExtendedAgent struct {
 	AoARanking []int
 
 	LastTeamID uuid.UUID // Tracks the last team the agent was part of
-} 
+}
 
 type AgentConfig struct {
 	InitScore    int
