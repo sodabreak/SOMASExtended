@@ -39,4 +39,6 @@ type IExtendedAgent interface {
 	LogSelfInfo()
 	GetAoARanking() []int
 	SetAoARanking(Preferences []int)
+	GetContributionAuditPreference() (int, uuid.UUID)
+	GetWithdrawalAuditPreference() (int, uuid.UUID)
 }

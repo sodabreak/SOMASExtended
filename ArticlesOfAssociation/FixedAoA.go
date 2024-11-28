@@ -2,7 +2,9 @@ package aoa
 
 import "github.com/google/uuid"
 
-type FixedAoA struct {}
+type FixedAoA struct {
+	AuditMap map[uuid.UUID]
+}
 
 func (f *FixedAoA) ResetAuditMap() {}
 

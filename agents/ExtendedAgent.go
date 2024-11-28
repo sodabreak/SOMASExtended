@@ -224,6 +224,22 @@ func (mi *ExtendedAgent) LogSelfInfo() {
 	fmt.Printf("[Agent %s] score: %v\n", mi.GetID(), mi.score)
 }
 
+// Agent returns their preference for an audit on contribution
+// 0: No preference
+// 1: Prefer audit
+// -1: Prefer no audit
+func (mi *ExtendedAgent) GetContributionAuditPreference() (int, uuid.UUID) {
+	return 0, uuid.Nil
+}
+
+// Agent returns their preference for an audit on withdrawal
+// 0: No preference
+// 1: Prefer audit
+// -1: Prefer no audit
+func (mi *ExtendedAgent) GetWithdrawalAuditPreference() (int, uuid.UUID) {
+	return 0, uuid.Nil
+}
+
 // ----------------------- Messaging functions -----------------------
 
 func (mi *ExtendedAgent) HandleTeamFormationMessage(msg *common.TeamFormationMessage) {

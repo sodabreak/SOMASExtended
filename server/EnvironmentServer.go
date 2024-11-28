@@ -62,6 +62,26 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 		// .. we only do this after all agentss have contributed to the common pool
 		team.SetCommonPool(team.GetCommonPool() + agentContributionsTotal)
 
+		// Now that agents can see the latest common pool, Initiate Contribution Audit vote
+		// ...
+		contributionVoteResults := 0
+		contributionVoteMap := make(map[uuid.UUID]int)
+		for _, agentID := range team.Agents {
+			agent := cs.GetAgentMap()[agentID]
+			vote, votedAgentId := agent.GetContributionAuditPreference()
+			if vote == 1 {
+				contributionVoteResults++
+				contributionVoteMap[votedAgentId]++
+			}
+		}
+		// Gather all the votes 
+		// Call a function in the AoA
+
+		// if audit majority for agent x
+		// agent_x did cheat = team.teamAoA.AuditMap[agent_x_id]
+
+		// call a setter function on all agents to set the audit result for this turn's contribution 
+
 		// Sum of withdrawals from all agents in the team for this turn
 		agentWithdrawalsTotal := 0
 		// All agents withdraw from common pool for this turn
@@ -84,7 +104,12 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 		// Update common pool with total withdrawal from this team
 		// .. we only do this after all agents have withdrawn from the common pool
 		team.SetCommonPool(team.GetCommonPool() - agentWithdrawalsTotal)
+
+		// Initiate Withdrawal Audit vote
+		// ...
 	}
+	
+	// Reallocate agents who left their teams during the turn
 }
 
 func (cs *EnvironmentServer) RunStartOfIteration(iteration int) {
