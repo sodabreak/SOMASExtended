@@ -1,6 +1,7 @@
 package common
 
 import (
+	aoa "SOMAS_Extended/ArticlesOfAssociation"
 	"github.com/MattSScott/basePlatformSOMAS/v2/pkg/agent"
 	"github.com/google/uuid"
 )
@@ -12,21 +13,29 @@ type IExtendedAgent interface {
 	GetTeamID() uuid.UUID
 	GetLastTeamID() uuid.UUID
 	GetTrueScore() int
-	GetActualContribution() int
-	GetActualWithdrawal() int
-	GetStatedContribution() int
-	GetStatedWithdrawal() int
+
+	// Functions that involve strategic decisions
+	StartTeamForming(instance IExtendedAgent, agentInfoList []ExposedAgentInfo)
+	StartRollingDice(instance IExtendedAgent)
+	GetActualContribution(instance IExtendedAgent) int
+	GetActualWithdrawal(instance IExtendedAgent) int
+	GetStatedContribution(instance IExtendedAgent) int
+	GetStatedWithdrawal(instance IExtendedAgent) int
 
 	// Setters
 	SetTeamID(teamID uuid.UUID)
 	SetTrueScore(score int)
-	StartRollingDice()
-	StickOrAgain() bool
+	SetAgentContributionAuditResult(agentID uuid.UUID, result bool)
+	SetAgentWithdrawalAuditResult(agentID uuid.UUID, result bool)
 	DecideStick()
 	DecideRollAgain()
 
-	// team forming
-	StartTeamForming(agentInfoList []ExposedAgentInfo)
+	// Strategic decisions (functions that each team can implement their own)
+	// NOTE: Any function calling these should have a parameter of type IExtendedAgent (instance IExtendedAgent)
+	DecideTeamForming(agentInfoList []ExposedAgentInfo) []uuid.UUID
+	StickOrAgain() bool
+	DecideContribution() int
+	DecideWithdrawal() int
 
 	// Messaging functions
 	HandleTeamFormationMessage(msg *TeamFormationMessage)
@@ -39,4 +48,6 @@ type IExtendedAgent interface {
 	LogSelfInfo()
 	GetAoARanking() []int
 	SetAoARanking(Preferences []int)
+	GetContributionAuditVote() aoa.Vote
+	GetWithdrawalAuditVote() aoa.Vote
 }

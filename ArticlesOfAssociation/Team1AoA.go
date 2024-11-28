@@ -40,10 +40,10 @@ func (t *Team1AoA) GetAuditCost(commonPool int) int {
 	return 5 // Constant cost?
 }
 
-func (t *Team1AoA) GetVoteResult(votes []Vote) *uuid.UUID {
+func (t *Team1AoA) GetVoteResult(votes []Vote) uuid.UUID {
 	//ToDo
 	// Couldnt find how vote works
-	return &uuid.Nil
+	return uuid.Nil
 }
 
 func (t *Team1AoA) getTotalInRank(k int) int {
@@ -57,6 +57,18 @@ func (t *Team1AoA) getTotalInRank(k int) int {
 }
 
 func (t *Team1AoA) RunAoAStuff() {
+}
+
+func (t *Team1AoA) GetContributionAuditResult(agentId uuid.UUID) bool {
+	return false
+}
+
+func (t *Team1AoA) GetWithdrawalAuditResult(agentId uuid.UUID) bool {
+	return false
+}
+
+func (t *Team1AoA) GetWithdrawalOrder(agentIDs []uuid.UUID) []uuid.UUID {
+	return agentIDs
 }
 
 func CreateTeam1AoA() IArticlesOfAssociation {
@@ -73,3 +85,4 @@ func CreateTeam1AoA() IArticlesOfAssociation {
 		withdrawalPerRank: withdrawalPerRank,
 	}
 }
+

@@ -3,6 +3,8 @@ package aoa
 // import "github.com/google/uuid"
 import (
 	"container/list"
+	"math/rand"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -48,10 +50,20 @@ func (t *Team2AoA) GetExpectedContribution(agentId uuid.UUID, agentScore int) in
 	return agentScore
 }
 
+// TODO: Team2 to implement the actual functionality
+func (t *Team2AoA) GetContributionAuditResult(agentId uuid.UUID) bool {
+	return false
+}
+
 func (t *Team2AoA) SetContributionAuditResult(agentId uuid.UUID, agentScore int, agentActualContribution int, agentStatedContribution int) {
 	// ignore agentStatedContribution
 	// check if agent actually contributed it's entire score
 	t.AuditMap[agentId].AddToQueue(agentActualContribution != agentScore)
+}
+
+
+func (t *Team2AoA) GetWithdrawalAuditResult(agentId uuid.UUID) bool {
+	return false
 }
 
 func (t *Team2AoA) GetExpectedWithdrawal(agentId uuid.UUID, agentScore int, commonPool int) int {
@@ -76,10 +88,10 @@ func (t *Team2AoA) GetAuditCost(commonPool int) int {
 	return 5 + ((commonPool - 5) / 5)
 }
 
-func (t *Team2AoA) GetVoteResult(votes []Vote) *uuid.UUID {
+func (t *Team2AoA) GetVoteResult(votes []Vote) uuid.UUID {
 	voteMap := make(map[uuid.UUID]int)
 	for _, vote := range votes {
-		if vote.IsVote {
+		if vote.IsVote == 1 {
 			if vote.VoterID == t.Leader {
 				voteMap[vote.VotedForID] += 2
 			} else {
@@ -87,10 +99,26 @@ func (t *Team2AoA) GetVoteResult(votes []Vote) *uuid.UUID {
 			}
 		}
 		if voteMap[vote.VotedForID] > 4 {
-			return &vote.VotedForID
+			return vote.VotedForID
 		}
 	}
-	return &uuid.Nil
+	return uuid.Nil // Explicitly return uuid.Nil for "no result"
+}
+
+func (t *Team2AoA) GetWithdrawalOrder(agentIDs []uuid.UUID) []uuid.UUID {
+	// Seed the random number generator to ensure different shuffles each time
+	rand.Seed(time.Now().UnixNano())
+
+	// Create a copy of the agentIDs to avoid modifying the original list
+	shuffledAgents := make([]uuid.UUID, len(agentIDs))
+	copy(shuffledAgents, agentIDs)
+
+	// Shuffle the agent list
+	rand.Shuffle(len(shuffledAgents), func(i, j int) {
+		shuffledAgents[i], shuffledAgents[j] = shuffledAgents[j], shuffledAgents[i]
+	})
+
+	return shuffledAgents
 }
 
 func (t *Team2AoA) RunAoAStuff() {}

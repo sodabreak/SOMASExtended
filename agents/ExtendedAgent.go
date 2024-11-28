@@ -6,7 +6,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"SOMAS_Extended/common"
+	common "SOMAS_Extended/common"
+
+	// TODO: S
+	aoa "SOMAS_Extended/ArticlesOfAssociation"
 
 	"github.com/MattSScott/basePlatformSOMAS/v2/pkg/agent"
 	"github.com/MattSScott/basePlatformSOMAS/v2/pkg/message"
@@ -69,7 +72,7 @@ func (mi *ExtendedAgent) SetTrueScore(score int) {
 }
 
 // custom function: ask for rolling the dice
-func (mi *ExtendedAgent) StartRollingDice() {
+func (mi *ExtendedAgent) StartRollingDice(instance common.IExtendedAgent) {
 	if mi.verboseLevel > 10 {
 		fmt.Printf("%s is rolling the Dice\n", mi.GetID())
 	}
@@ -92,7 +95,7 @@ func (mi *ExtendedAgent) StartRollingDice() {
 		if currentScore > mi.lastScore {
 			turnScore += currentScore
 			mi.lastScore = currentScore
-			willStick = mi.StickOrAgain()
+			willStick = instance.StickOrAgain()
 			if willStick {
 				mi.DecideStick()
 				break
@@ -144,9 +147,9 @@ func (mi *ExtendedAgent) DecideRollAgain() {
 // TODO: TO BE IMPLEMENTED BY TEAM'S AGENT
 // get the agent's actual contribution to the common pool
 // This function MUST return the same value when called multiple times in the same turn
-func (mi *ExtendedAgent) GetActualContribution() int {
+func (mi *ExtendedAgent) GetActualContribution(instance common.IExtendedAgent) int {
 	if mi.HasTeam() {
-		contribution := mi.DecideSelfContribution()
+		contribution := instance.DecideContribution()
 		if mi.verboseLevel > 6 {
 			fmt.Printf("%s is contributing %d to the common pool and thinks the common pool size is %d\n", mi.GetID(), contribution, mi.server.GetTeam(mi.GetID()).GetCommonPool())
 		}
@@ -159,7 +162,7 @@ func (mi *ExtendedAgent) GetActualContribution() int {
 	}
 }
 
-func (mi *ExtendedAgent) DecideSelfContribution() int {
+func (mi *ExtendedAgent) DecideContribution() int {
 	// MVP: contribute exactly as defined in AoA
 	if mi.server.GetTeam(mi.GetID()).TeamAoA != nil {
 		aoaExpectedContribution := mi.server.GetTeam(mi.GetID()).TeamAoA.GetExpectedContribution(mi.GetID(), mi.GetTrueScore())
@@ -180,28 +183,30 @@ func (mi *ExtendedAgent) DecideSelfContribution() int {
 // get the agent's stated contribution to the common pool
 // TODO: the value returned by this should be broadcasted to the team via a message
 // This function MUST return the same value when called multiple times in the same turn
-func (mi *ExtendedAgent) GetStatedContribution() int {
-	// Hardcoded stated 
-	statedContribution := mi.GetActualContribution()
+func (mi *ExtendedAgent) GetStatedContribution(instance common.IExtendedAgent) int {
+	// Hardcoded stated
+	statedContribution := instance.GetActualContribution(instance)
 	return statedContribution
 
 }
 
 // make withdrawal from common pool
-func (mi *ExtendedAgent) GetActualWithdrawal() int {
+func (mi *ExtendedAgent) GetActualWithdrawal(instance common.IExtendedAgent) int {
+	currentPool := mi.server.GetTeam(mi.GetID()).GetCommonPool()
 	withdrawal := mi.DecideWithdrawal()
-	fmt.Printf("%s is withdrawing %d from the common pool and thinks the common pool size is %d\n", mi.GetID(), withdrawal, mi.server.GetTeam(mi.GetID()).GetCommonPool())
+	fmt.Printf("%s is withdrawing %d from the common pool of size %d\n", mi.GetID(), withdrawal, currentPool)
 	return withdrawal
 }
 
-// TODO: the value returned by this should be broadcasted to the team via a message
+// The value returned by this should be broadcasted to the team via a message
 // This function MUST return the same value when called multiple times in the same turn
-func (mi *ExtendedAgent) GetStatedWithdrawal() int {
-	return 0
+func (mi *ExtendedAgent) GetStatedWithdrawal(instance common.IExtendedAgent) int {
+	// Currently, assume stated withdrawal matches actual withdrawal
+	return mi.DecideWithdrawal()
 }
 
+// Decide the withdrawal amount based on AoA and current pool size
 func (mi *ExtendedAgent) DecideWithdrawal() int {
-	// MVP: withdraw exactly as defined in AoA
 	if mi.server.GetTeam(mi.GetID()).TeamAoA != nil {
 		// double check if score in agent is sufficient (this should be handled by AoA though)
 		commonPool := mi.server.GetTeam(mi.GetID()).GetCommonPool()
@@ -212,7 +217,6 @@ func (mi *ExtendedAgent) DecideWithdrawal() int {
 		return aoaExpectedWithdrawal
 	} else {
 		if mi.verboseLevel > 6 {
-			// should not happen!
 			fmt.Printf("[WARNING] Agent %s has no AoA, withdrawing 0\n", mi.GetID())
 		}
 		return 0
@@ -224,7 +228,27 @@ func (mi *ExtendedAgent) LogSelfInfo() {
 	fmt.Printf("[Agent %s] score: %v\n", mi.GetID(), mi.score)
 }
 
-// ----------------------- Messaging functions -----------------------
+// Agent returns their preference for an audit on contribution
+// 0: No preference
+// 1: Prefer audit
+// -1: Prefer no audit
+func (mi *ExtendedAgent) GetContributionAuditVote() aoa.Vote {
+	return aoa.CreateVote(0, mi.GetID(), uuid.Nil)
+}
+
+// Agent returns their preference for an audit on withdrawal
+// 0: No preference
+// 1: Prefer audit
+// -1: Prefer no audit
+func (mi *ExtendedAgent) GetWithdrawalAuditVote() aoa.Vote {
+	return aoa.CreateVote(0, mi.GetID(), uuid.Nil)
+}
+
+func (mi *ExtendedAgent) SetAgentContributionAuditResult(agentID uuid.UUID, result bool) {}
+
+func (mi *ExtendedAgent) SetAgentWithdrawalAuditResult(agentID uuid.UUID, result bool) {}
+
+// ----Withdrawal------- Messaging functions -----------------------
 
 func (mi *ExtendedAgent) HandleTeamFormationMessage(msg *common.TeamFormationMessage) {
 	fmt.Printf("Agent %s received team forming invitation from %s\n", mi.GetID(), msg.GetSender())
@@ -333,13 +357,13 @@ func Debug_StickOrAgainJudgement() bool {
 }
 
 // ----------------------- Team forming functions -----------------------
-func (mi *ExtendedAgent) StartTeamForming(agentInfoList []common.ExposedAgentInfo) {
+func (mi *ExtendedAgent) StartTeamForming(instance common.IExtendedAgent, agentInfoList []common.ExposedAgentInfo) {
 	// TODO: implement team forming logic
 	if mi.verboseLevel > 6 {
 		fmt.Printf("%s is starting team formation\n", mi.GetID())
 	}
 
-	chosenAgents := mi.DecideTeamForming(agentInfoList)
+	chosenAgents := instance.DecideTeamForming(agentInfoList)
 	mi.SendTeamFormingInvitation(chosenAgents)
 	mi.SignalMessagingComplete()
 }
