@@ -1,9 +1,9 @@
 package environmentServer
 
 import (
+	aoa "SOMAS_Extended/ArticlesOfAssociation"
 	"SOMAS_Extended/agents"
 	"SOMAS_Extended/common"
-	aoa "SOMAS_Extended/ArticlesOfAssociation"
 	"fmt"
 	"math/rand"
 	"sync"
@@ -17,35 +17,30 @@ import (
 type EnvironmentServer struct {
 	*server.BaseServer[common.IExtendedAgent]
 
-	teamsMutex    		sync.RWMutex
-	agentInfoList 		[]common.ExposedAgentInfo
-	teams         		map[uuid.UUID]*common.Team
+	teamsMutex    sync.RWMutex
+	agentInfoList []common.ExposedAgentInfo
+	teams         map[uuid.UUID]*common.Team
 
 	roundScoreThreshold int
 	deadAgents          []common.IExtendedAgent
 
 	// set of options for team strategies (agents rank these options)
-	aoaMenu  			[]aoa.IArticlesOfAssociation
+	aoaMenu []aoa.IArticlesOfAssociation
 }
 
-// overrides that requires implementation
 func (cs *EnvironmentServer) RunTurn(i, j int) {
 	fmt.Printf("\n\nIteration %v, Turn %v, current agent count: %v\n", i, j, len(cs.GetAgentMap()))
 
 	cs.teamsMutex.Lock()
 	defer cs.teamsMutex.Unlock()
 
-	// Agents roll dice and make their contributions for this turn
 	for _, team := range cs.teams {
 		fmt.Println("\nRunning turn for team ", team.TeamID)
 		// Sum of contributions from all agents in the team for this turn
 		agentContributionsTotal := 0
 		for _, agentID := range team.Agents {
 			agent := cs.GetAgentMap()[agentID]
-			if agent.GetTeamID() == uuid.Nil {
-				continue
-			}
-			if cs.IsAgentDead(agentID) {
+			if agent.GetTeamID() == uuid.Nil || cs.IsAgentDead(agentID) {
 				continue
 			}
 			agent.StartRollingDice()
@@ -59,42 +54,53 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 		}
 
 		// Update common pool with total contribution from this team
-		// .. we only do this after all agentss have contributed to the common pool
 		team.SetCommonPool(team.GetCommonPool() + agentContributionsTotal)
 
 		// Sum of withdrawals from all agents in the team for this turn
 		agentWithdrawalsTotal := 0
-		// All agents withdraw from common pool for this turn
-		for _, agentID := range team.Agents {
+
+		// Randomize the order of agents for withdrawals
+		shuffledAgents := make([]uuid.UUID, len(team.Agents))
+		copy(shuffledAgents, team.Agents)
+		rand.Shuffle(len(shuffledAgents), func(i, j int) {
+			shuffledAgents[i], shuffledAgents[j] = shuffledAgents[j], shuffledAgents[i]
+		})
+
+		// Agents withdraw from the common pool in random order
+		for _, agentID := range shuffledAgents {
 			agent := cs.GetAgentMap()[agentID]
-			if agent.GetTeamID() == uuid.Nil {
+			if agent.GetTeamID() == uuid.Nil || cs.IsAgentDead(agentID) {
 				continue
 			}
-			if cs.IsAgentDead(agentID) {
-				continue
+
+			// Pass the current pool value to agent's methods
+			currentPool := team.GetCommonPool()
+			agentActualWithdrawal := agent.GetActualWithdrawal(currentPool)
+			if agentActualWithdrawal > currentPool {
+				agentActualWithdrawal = currentPool // Ensure withdrawal does not exceed available pool
 			}
-			agentActualWithdrawal := agent.GetActualWithdrawal()
 			agentWithdrawalsTotal += agentActualWithdrawal
-			agentStatedWithdrawal := agent.GetStatedWithdrawal()
+			agentStatedWithdrawal := agent.GetStatedWithdrawal(currentPool)
 			agentScore := agent.GetTrueScore()
 			// Update audit result for this agent
 			team.TeamAoA.SetWithdrawalAuditResult(agentID, agentScore, agentActualWithdrawal, agentStatedWithdrawal)
 			agent.SetTrueScore(agentScore + agentActualWithdrawal)
+
+			// Update the common pool after each withdrawal
+			team.SetCommonPool(currentPool - agentActualWithdrawal)
+			fmt.Printf("[server] Agent %v withdrew %v. Remaining pool: %v\n", agentID, agentActualWithdrawal, team.GetCommonPool())
 		}
-		// Update common pool with total withdrawal from this team
-		// .. we only do this after all agents have withdrawn from the common pool
-		team.SetCommonPool(team.GetCommonPool() - agentWithdrawalsTotal)
 	}
 }
 
 func (cs *EnvironmentServer) RunStartOfIteration(iteration int) {
 	fmt.Printf("--------Start of iteration %v---------\n", iteration)
-    
-    // Initialise random threshold
+
+	// Initialise random threshold
 	cs.CreateNewRoundScoreThreshold()
 
-    // Revive all dead agents
-    cs.ReviveDeadAgents()
+	// Revive all dead agents
+	cs.ReviveDeadAgents()
 
 	// start team forming
 	cs.StartAgentTeamForming()
@@ -110,7 +116,7 @@ func (cs *EnvironmentServer) AllocateAoAs() {
 	// Iterate over each team
 	for _, team := range cs.teams {
 		// ranking cache for each team.
-		var voteSum = []int{0,0,0,0}
+		var voteSum = []int{0, 0, 0, 0}
 		for _, agent := range team.Agents {
 			if cs.IsAgentDead(agent) {
 				continue
@@ -151,14 +157,14 @@ func (cs *EnvironmentServer) Start() {
 }
 
 func (cs *EnvironmentServer) ReviveDeadAgents() {
-    for _, agent := range cs.deadAgents {
-        fmt.Printf("[server] Agent %v is being revived\n", agent.GetID())
-        agent.SetTrueScore(0)  // new agents start with a score of 0
-        cs.AddAgent(agent)  // re-add the agent to the server map
-    }
+	for _, agent := range cs.deadAgents {
+		fmt.Printf("[server] Agent %v is being revived\n", agent.GetID())
+		agent.SetTrueScore(0) // new agents start with a score of 0
+		cs.AddAgent(agent)    // re-add the agent to the server map
+	}
 
-    // Clear the slice 
-    cs.deadAgents = cs.deadAgents[:0]
+	// Clear the slice
+	cs.deadAgents = cs.deadAgents[:0]
 }
 
 // constructor
@@ -216,19 +222,19 @@ func (cs *EnvironmentServer) LogAgentStatus() {
 
 // pretty logging to show all team status
 func (cs *EnvironmentServer) LogTeamStatus() {
-    for _, team := range cs.teams {
-        fmt.Printf("Team %v: %v\n", team.TeamID, team.Agents)
-    }
-    // Log agents with no team
-    for _, agent := range cs.GetAgentMap() {
-        if agent.GetTeamID() == uuid.Nil {
-            fmt.Printf("Agent %v has no team\n", agent.GetID())
-        }
-    }
-    // Log dead agents
-    for _, agent := range cs.deadAgents {
+	for _, team := range cs.teams {
+		fmt.Printf("Team %v: %v\n", team.TeamID, team.Agents)
+	}
+	// Log agents with no team
+	for _, agent := range cs.GetAgentMap() {
+		if agent.GetTeamID() == uuid.Nil {
+			fmt.Printf("Agent %v has no team\n", agent.GetID())
+		}
+	}
+	// Log dead agents
+	for _, agent := range cs.deadAgents {
 		fmt.Printf("Agent %v is dead, last team: %v\n", agent.GetID(), agent.GetLastTeamID())
-    }
+	}
 }
 
 func (cs *EnvironmentServer) UpdateAndGetAgentExposedInfo() []common.ExposedAgentInfo {
@@ -270,17 +276,17 @@ func (cs *EnvironmentServer) KillAgent(agentID uuid.UUID) {
 				// Remove agent from the team
 				team.Agents = append(team.Agents[:i], team.Agents[i+1:]...)
 				cs.teams[teamID] = team
-                // Set the team of the agent to Nil !!!
-                agent.SetTeamID(uuid.Nil)
+				// Set the team of the agent to Nil !!!
+				agent.SetTeamID(uuid.Nil)
 				break
 			}
 		}
 		cs.teamsMutex.Unlock()
 
-        // Add the agent to the dead agent list and remove it from the server's agent map
-        cs.deadAgents = append(cs.deadAgents, agent)
-        cs.RemoveAgent(agent)
-	    fmt.Printf("[server] Agent %v killed\n", agentID)
+		// Add the agent to the dead agent list and remove it from the server's agent map
+		cs.deadAgents = append(cs.deadAgents, agent)
+		cs.RemoveAgent(agent)
+		fmt.Printf("[server] Agent %v killed\n", agentID)
 	}
 }
 
@@ -322,11 +328,11 @@ func (cs *EnvironmentServer) AddAgentToTeam(agentID uuid.UUID, teamID uuid.UUID)
 	defer cs.teamsMutex.Unlock()
 
 	// Check if agent is already in this team
-    team, exists := cs.teams[teamID]
-    if !exists {
-        fmt.Printf("[server] Team %v does not exist\n", teamID)
-        return
-    }
+	team, exists := cs.teams[teamID]
+	if !exists {
+		fmt.Printf("[server] Team %v does not exist\n", teamID)
+		return
+	}
 
 	for _, existingAgent := range team.Agents {
 		if existingAgent == agentID {

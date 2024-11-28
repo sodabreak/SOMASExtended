@@ -181,38 +181,36 @@ func (mi *ExtendedAgent) DecideSelfContribution() int {
 // TODO: the value returned by this should be broadcasted to the team via a message
 // This function MUST return the same value when called multiple times in the same turn
 func (mi *ExtendedAgent) GetStatedContribution() int {
-	// Hardcoded stated 
+	// Hardcoded stated
 	statedContribution := mi.GetActualContribution()
 	return statedContribution
 
 }
 
 // make withdrawal from common pool
-func (mi *ExtendedAgent) GetActualWithdrawal() int {
-	withdrawal := mi.DecideWithdrawal()
-	fmt.Printf("%s is withdrawing %d from the common pool and thinks the common pool size is %d\n", mi.GetID(), withdrawal, mi.server.GetTeam(mi.GetID()).GetCommonPool())
+func (mi *ExtendedAgent) GetActualWithdrawal(currentPool int) int {
+	withdrawal := mi.DecideWithdrawal(currentPool)
+	fmt.Printf("%s is withdrawing %d from the common pool of size %d\n", mi.GetID(), withdrawal, currentPool)
 	return withdrawal
 }
 
-// TODO: the value returned by this should be broadcasted to the team via a message
+// The value returned by this should be broadcasted to the team via a message
 // This function MUST return the same value when called multiple times in the same turn
-func (mi *ExtendedAgent) GetStatedWithdrawal() int {
-	return 0
+func (mi *ExtendedAgent) GetStatedWithdrawal(currentPool int) int {
+	// Currently, assume stated withdrawal matches actual withdrawal
+	return mi.DecideWithdrawal(currentPool)
 }
 
-func (mi *ExtendedAgent) DecideWithdrawal() int {
-	// MVP: withdraw exactly as defined in AoA
+// Decide the withdrawal amount based on AoA and current pool size
+func (mi *ExtendedAgent) DecideWithdrawal(currentPool int) int {
 	if mi.server.GetTeam(mi.GetID()).TeamAoA != nil {
 		aoaExpectedWithdrawal := mi.server.GetTeam(mi.GetID()).TeamAoA.GetExpectedWithdrawal(mi.GetID(), mi.GetTrueScore())
-		// double check if score in agent is sufficient (this should be handled by AoA though)
-		commonPool := mi.server.GetTeam(mi.GetID()).GetCommonPool()
-		if commonPool < aoaExpectedWithdrawal {
-			return commonPool
+		if currentPool < aoaExpectedWithdrawal {
+			return currentPool
 		}
 		return aoaExpectedWithdrawal
 	} else {
 		if mi.verboseLevel > 6 {
-			// should not happen!
 			fmt.Printf("[WARNING] Agent %s has no AoA, withdrawing 0\n", mi.GetID())
 		}
 		return 0

@@ -13,9 +13,9 @@ type IExtendedAgent interface {
 	GetLastTeamID() uuid.UUID
 	GetTrueScore() int
 	GetActualContribution() int
-	GetActualWithdrawal() int
+	GetActualWithdrawal(poolSize int) int
 	GetStatedContribution() int
-	GetStatedWithdrawal() int
+	GetStatedWithdrawal(poolSize int) int
 
 	// Setters
 	SetTeamID(teamID uuid.UUID)
@@ -25,7 +25,7 @@ type IExtendedAgent interface {
 	DecideStick()
 	DecideRollAgain()
 
-	// team forming
+	// Team forming
 	StartTeamForming(agentInfoList []ExposedAgentInfo)
 
 	// Messaging functions
