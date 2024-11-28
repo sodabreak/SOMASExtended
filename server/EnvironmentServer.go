@@ -58,6 +58,9 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 		//  Different to the withdrawal phase!
 		team.SetCommonPool(team.GetCommonPool() + agentContributionsTotal)
 
+		// Do AoA processing
+		team.TeamAoA.RunAoAStuff()
+
 		// Initiate Contribution Audit vote
 		contributionAuditVotes := []aoa.Vote{}
 		for _, agentID := range team.Agents {
@@ -91,7 +94,7 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 			agentStatedWithdrawal := agent.GetStatedWithdrawal(agent)
 			agentScore := agent.GetTrueScore()
 			// Update audit result for this agent
-			team.TeamAoA.SetWithdrawalAuditResult(agentID, agentScore, agentActualWithdrawal, agentStatedWithdrawal)
+			team.TeamAoA.SetWithdrawalAuditResult(agentID, agentScore, agentActualWithdrawal, agentStatedWithdrawal, team.GetCommonPool())
 			agent.SetTrueScore(agentScore + agentActualWithdrawal)
 
 			// Update the common pool after each withdrawal so agents can see the updated pool before deciding their withdrawal.

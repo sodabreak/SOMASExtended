@@ -208,10 +208,11 @@ func (mi *ExtendedAgent) GetStatedWithdrawal(instance common.IExtendedAgent) int
 // Decide the withdrawal amount based on AoA and current pool size
 func (mi *ExtendedAgent) DecideWithdrawal() int {
 	if mi.server.GetTeam(mi.GetID()).TeamAoA != nil {
-		aoaExpectedWithdrawal := mi.server.GetTeam(mi.GetID()).TeamAoA.GetExpectedWithdrawal(mi.GetID(), mi.GetTrueScore())
-		currentPool := mi.server.GetTeam(mi.GetID()).GetCommonPool()
-		if currentPool < aoaExpectedWithdrawal {
-			return currentPool
+		// double check if score in agent is sufficient (this should be handled by AoA though)
+		commonPool := mi.server.GetTeam(mi.GetID()).GetCommonPool()
+		aoaExpectedWithdrawal := mi.server.GetTeam(mi.GetID()).TeamAoA.GetExpectedWithdrawal(mi.GetID(), mi.GetTrueScore(), commonPool)
+		if commonPool < aoaExpectedWithdrawal {
+			return commonPool
 		}
 		return aoaExpectedWithdrawal
 	} else {

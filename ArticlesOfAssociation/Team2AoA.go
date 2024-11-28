@@ -65,14 +65,14 @@ func (t *Team2AoA) GetWithdrawalAuditResult(agentId uuid.UUID) bool {
 	return false
 }
 
-func (t *Team2AoA) GetExpectedWithdrawal(agentId uuid.UUID, agentScore int) int {
+func (t *Team2AoA) GetExpectedWithdrawal(agentId uuid.UUID, agentScore int, commonPool int) int {
 	if agentId == t.Leader {
 		return int(float64(agentScore) * 0.25)
 	}
 	return int(float64(agentScore) * 0.10)
 }
 
-func (t *Team2AoA) SetWithdrawalAuditResult(agentId uuid.UUID, agentScore int, agentActualWithdrawal int, agentStatedWithdrawal int) {
+func (t *Team2AoA) SetWithdrawalAuditResult(agentId uuid.UUID, agentScore int, agentActualWithdrawal int, agentStatedWithdrawal int, commonPool int) {
 	if agentId == t.Leader {
 		t.AuditMap[agentId].AddToQueue(float64(agentScore)*0.25 != float64(agentActualWithdrawal))
 	} else {
@@ -119,6 +119,8 @@ func (t *Team2AoA) GetWithdrawalOrder(agentIDs []uuid.UUID) []uuid.UUID {
 
 	return shuffledAgents
 }
+
+func (t *Team2AoA) RunAoAStuff() {}
 
 func CreateTeam2AoA() IArticlesOfAssociation {
 	return &Team2AoA{
