@@ -43,10 +43,10 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 			if agent.GetTeamID() == uuid.Nil || cs.IsAgentDead(agentID) {
 				continue
 			}
-			agent.StartRollingDice()
-			agentActualContribution := agent.GetActualContribution()
+			agent.StartRollingDice(agent)
+			agentActualContribution := agent.GetActualContribution(agent)
 			agentContributionsTotal += agentActualContribution
-			agentStatedContribution := agent.GetStatedContribution()
+			agentStatedContribution := agent.GetStatedContribution(agent)
 			agentScore := agent.GetTrueScore()
 			// Update audit result for this agent
 			team.TeamAoA.SetContributionAuditResult(agentID, agentScore, agentActualContribution, agentStatedContribution)
@@ -67,11 +67,11 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 
 			// Pass the current pool value to agent's methods
 			currentPool := team.GetCommonPool()
-			agentActualWithdrawal := agent.GetActualWithdrawal()
+			agentActualWithdrawal := agent.GetActualWithdrawal(agent)
 			if agentActualWithdrawal > currentPool {
 				agentActualWithdrawal = currentPool // Ensure withdrawal does not exceed available pool
 			}
-			agentStatedWithdrawal := agent.GetStatedWithdrawal()
+			agentStatedWithdrawal := agent.GetStatedWithdrawal(agent)
 			agentScore := agent.GetTrueScore()
 			// Update audit result for this agent
 			team.TeamAoA.SetWithdrawalAuditResult(agentID, agentScore, agentActualWithdrawal, agentStatedWithdrawal)
@@ -307,7 +307,7 @@ func (cs *EnvironmentServer) StartAgentTeamForming() {
 
 	// Launch team formation for each agent
 	for _, agent := range cs.GetAgentMap() {
-		agent.StartTeamForming(agentInfo)
+		agent.StartTeamForming(agent, agentInfo)
 	}
 }
 

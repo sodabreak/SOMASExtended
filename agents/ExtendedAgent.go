@@ -69,7 +69,7 @@ func (mi *ExtendedAgent) SetTrueScore(score int) {
 }
 
 // custom function: ask for rolling the dice
-func (mi *ExtendedAgent) StartRollingDice() {
+func (mi *ExtendedAgent) StartRollingDice(instance common.IExtendedAgent) {
 	if mi.verboseLevel > 10 {
 		fmt.Printf("%s is rolling the Dice\n", mi.GetID())
 	}
@@ -92,7 +92,7 @@ func (mi *ExtendedAgent) StartRollingDice() {
 		if currentScore > mi.lastScore {
 			turnScore += currentScore
 			mi.lastScore = currentScore
-			willStick = mi.StickOrAgain()
+			willStick = instance.StickOrAgain()
 			if willStick {
 				mi.DecideStick()
 				break
@@ -144,9 +144,9 @@ func (mi *ExtendedAgent) DecideRollAgain() {
 // TODO: TO BE IMPLEMENTED BY TEAM'S AGENT
 // get the agent's actual contribution to the common pool
 // This function MUST return the same value when called multiple times in the same turn
-func (mi *ExtendedAgent) GetActualContribution() int {
+func (mi *ExtendedAgent) GetActualContribution(instance common.IExtendedAgent) int {
 	if mi.HasTeam() {
-		contribution := mi.DecideSelfContribution()
+		contribution := instance.DecideContribution()
 		if mi.verboseLevel > 6 {
 			fmt.Printf("%s is contributing %d to the common pool and thinks the common pool size is %d\n", mi.GetID(), contribution, mi.server.GetTeam(mi.GetID()).GetCommonPool())
 		}
@@ -159,7 +159,7 @@ func (mi *ExtendedAgent) GetActualContribution() int {
 	}
 }
 
-func (mi *ExtendedAgent) DecideSelfContribution() int {
+func (mi *ExtendedAgent) DecideContribution() int {
 	// MVP: contribute exactly as defined in AoA
 	if mi.server.GetTeam(mi.GetID()).TeamAoA != nil {
 		aoaExpectedContribution := mi.server.GetTeam(mi.GetID()).TeamAoA.GetExpectedContribution(mi.GetID(), mi.GetTrueScore())
@@ -180,24 +180,24 @@ func (mi *ExtendedAgent) DecideSelfContribution() int {
 // get the agent's stated contribution to the common pool
 // TODO: the value returned by this should be broadcasted to the team via a message
 // This function MUST return the same value when called multiple times in the same turn
-func (mi *ExtendedAgent) GetStatedContribution() int {
+func (mi *ExtendedAgent) GetStatedContribution(instance common.IExtendedAgent) int {
 	// Hardcoded stated
-	statedContribution := mi.GetActualContribution()
+	statedContribution := instance.GetActualContribution(instance)
 	return statedContribution
 
 }
 
 // make withdrawal from common pool
-func (mi *ExtendedAgent) GetActualWithdrawal() int {
-	withdrawal := mi.DecideWithdrawal()
+func (mi *ExtendedAgent) GetActualWithdrawal(instance common.IExtendedAgent) int {
 	currentPool := mi.server.GetTeam(mi.GetID()).GetCommonPool()
+	withdrawal := mi.DecideWithdrawal()
 	fmt.Printf("%s is withdrawing %d from the common pool of size %d\n", mi.GetID(), withdrawal, currentPool)
 	return withdrawal
 }
 
 // The value returned by this should be broadcasted to the team via a message
 // This function MUST return the same value when called multiple times in the same turn
-func (mi *ExtendedAgent) GetStatedWithdrawal() int {
+func (mi *ExtendedAgent) GetStatedWithdrawal(instance common.IExtendedAgent) int {
 	// Currently, assume stated withdrawal matches actual withdrawal
 	return mi.DecideWithdrawal()
 }
@@ -333,13 +333,13 @@ func Debug_StickOrAgainJudgement() bool {
 }
 
 // ----------------------- Team forming functions -----------------------
-func (mi *ExtendedAgent) StartTeamForming(agentInfoList []common.ExposedAgentInfo) {
+func (mi *ExtendedAgent) StartTeamForming(instance common.IExtendedAgent, agentInfoList []common.ExposedAgentInfo) {
 	// TODO: implement team forming logic
 	if mi.verboseLevel > 6 {
 		fmt.Printf("%s is starting team formation\n", mi.GetID())
 	}
 
-	chosenAgents := mi.DecideTeamForming(agentInfoList)
+	chosenAgents := instance.DecideTeamForming(agentInfoList)
 	mi.SendTeamFormingInvitation(chosenAgents)
 	mi.SignalMessagingComplete()
 }
