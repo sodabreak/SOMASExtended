@@ -35,6 +35,7 @@ type IExtendedAgent interface {
 	StickOrAgain() bool
 	DecideContribution() int
 	DecideWithdrawal() int
+	StickOrAgainFor(agentId uuid.UUID, accumulatedScore int, prevRoll int) int
 
 	// Messaging functions
 	HandleTeamFormationMessage(msg *TeamFormationMessage)
