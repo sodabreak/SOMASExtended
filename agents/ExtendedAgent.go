@@ -6,7 +6,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"SOMAS_Extended/common"
+	common "SOMAS_Extended/common"
+
+	// TODO: S
+	aoa "SOMAS_Extended/ArticlesOfAssociation"
 
 	"github.com/MattSScott/basePlatformSOMAS/v2/pkg/agent"
 	"github.com/MattSScott/basePlatformSOMAS/v2/pkg/message"
@@ -28,7 +31,7 @@ type ExtendedAgent struct {
 	AoARanking []int
 
 	LastTeamID uuid.UUID // Tracks the last team the agent was part of
-}
+} 
 
 type AgentConfig struct {
 	InitScore    int
@@ -181,7 +184,7 @@ func (mi *ExtendedAgent) DecideSelfContribution() int {
 // TODO: the value returned by this should be broadcasted to the team via a message
 // This function MUST return the same value when called multiple times in the same turn
 func (mi *ExtendedAgent) GetStatedContribution() int {
-	// Hardcoded stated 
+	// Hardcoded stated
 	statedContribution := mi.GetActualContribution()
 	return statedContribution
 
@@ -228,19 +231,23 @@ func (mi *ExtendedAgent) LogSelfInfo() {
 // 0: No preference
 // 1: Prefer audit
 // -1: Prefer no audit
-func (mi *ExtendedAgent) GetContributionAuditPreference() (int, uuid.UUID) {
-	return 0, uuid.Nil
+func (mi *ExtendedAgent) GetContributionAuditVote() aoa.Vote {
+	return aoa.CreateVote(0, mi.GetID(), uuid.Nil)
 }
 
 // Agent returns their preference for an audit on withdrawal
 // 0: No preference
 // 1: Prefer audit
 // -1: Prefer no audit
-func (mi *ExtendedAgent) GetWithdrawalAuditPreference() (int, uuid.UUID) {
-	return 0, uuid.Nil
+func (mi *ExtendedAgent) GetWithdrawalAuditVote() aoa.Vote {
+	return aoa.CreateVote(0, mi.GetID(), uuid.Nil)
 }
 
-// ----------------------- Messaging functions -----------------------
+func (mi *ExtendedAgent) SetAgentContributionAuditResult(agentID uuid.UUID, result bool) {}
+
+func (mi *ExtendedAgent) SetAgentWithdrawalAuditResult(agentID uuid.UUID, result bool) {}
+
+// ----Withdrawal------- Messaging functions -----------------------
 
 func (mi *ExtendedAgent) HandleTeamFormationMessage(msg *common.TeamFormationMessage) {
 	fmt.Printf("Agent %s received team forming invitation from %s\n", mi.GetID(), msg.GetSender())

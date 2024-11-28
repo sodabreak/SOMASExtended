@@ -1,9 +1,9 @@
 package environmentServer
 
 import (
+	aoa "SOMAS_Extended/ArticlesOfAssociation"
 	"SOMAS_Extended/agents"
 	"SOMAS_Extended/common"
-	aoa "SOMAS_Extended/ArticlesOfAssociation"
 	"fmt"
 	"math/rand"
 	"sync"
@@ -63,25 +63,27 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 		team.SetCommonPool(team.GetCommonPool() + agentContributionsTotal)
 
 		// Now that agents can see the latest common pool, Initiate Contribution Audit vote
-		// ...
-		contributionVoteResults := 0
-		contributionVoteMap := make(map[uuid.UUID]int)
+		// 1. Gather all the votes 
+		// 		Call a function in the AoA
+		contributionAuditVotes := []aoa.Vote{}
 		for _, agentID := range team.Agents {
 			agent := cs.GetAgentMap()[agentID]
-			vote, votedAgentId := agent.GetContributionAuditPreference()
-			if vote == 1 {
-				contributionVoteResults++
-				contributionVoteMap[votedAgentId]++
+			vote := agent.GetContributionAuditVote()
+			contributionAuditVotes = append(contributionAuditVotes, vote)
+		}	
+
+		// 2. if there is an agent which should be audited according to the AoA e.g. decided by majority vote
+		// 		agent_x did cheat = team.teamAoA.AuditMap[agent_x_id]
+		// 		call a setter function on all agents to set the audit result for this turn's contribution
+		if agentToAudit := team.TeamAoA.GetVoteResult(contributionAuditVotes); agentToAudit != uuid.Nil{
+			auditResult := team.TeamAoA.GetContributionAuditResult(agentToAudit)
+			// Agents are free to update their strategy based on the audit results by reading the audit
+			for _, agentID := range team.Agents {
+				agent := cs.GetAgentMap()[agentID]
+				agent.SetAgentContributionAuditResult(agentToAudit, auditResult)
 			}
 		}
-		// Gather all the votes 
-		// Call a function in the AoA
-
-		// if audit majority for agent x
-		// agent_x did cheat = team.teamAoA.AuditMap[agent_x_id]
-
-		// call a setter function on all agents to set the audit result for this turn's contribution 
-
+		
 		// Sum of withdrawals from all agents in the team for this turn
 		agentWithdrawalsTotal := 0
 		// All agents withdraw from common pool for this turn
@@ -111,6 +113,7 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 	
 	// Reallocate agents who left their teams during the turn
 }
+
 
 func (cs *EnvironmentServer) RunStartOfIteration(iteration int) {
 	fmt.Printf("--------Start of iteration %v---------\n", iteration)

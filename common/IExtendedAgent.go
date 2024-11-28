@@ -3,6 +3,7 @@ package common
 import (
 	"github.com/MattSScott/basePlatformSOMAS/v2/pkg/agent"
 	"github.com/google/uuid"
+	aoa "SOMAS_Extended/ArticlesOfAssociation"
 )
 
 type IExtendedAgent interface {
@@ -22,6 +23,9 @@ type IExtendedAgent interface {
 	SetTrueScore(score int)
 	StartRollingDice()
 	StickOrAgain() bool
+	SetAgentContributionAuditResult(agentID uuid.UUID, result bool)
+	SetAgentWithdrawalAuditResult(agentID uuid.UUID, result bool)
+
 	DecideStick()
 	DecideRollAgain()
 
@@ -39,6 +43,6 @@ type IExtendedAgent interface {
 	LogSelfInfo()
 	GetAoARanking() []int
 	SetAoARanking(Preferences []int)
-	GetContributionAuditPreference() (int, uuid.UUID)
-	GetWithdrawalAuditPreference() (int, uuid.UUID)
+	GetContributionAuditVote() aoa.Vote
+	GetWithdrawalAuditVote() aoa.Vote
 }
