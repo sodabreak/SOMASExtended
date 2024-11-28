@@ -48,10 +48,10 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 			if cs.IsAgentDead(agentID) {
 				continue
 			}
-			agent.StartRollingDice()
-			agentActualContribution := agent.GetActualContribution()
+			agent.StartRollingDice(agent)
+			agentActualContribution := agent.GetActualContribution(agent)
 			agentContributionsTotal += agentActualContribution
-			agentStatedContribution := agent.GetStatedContribution()
+			agentStatedContribution := agent.GetStatedContribution(agent)
 			agentScore := agent.GetTrueScore()
 			// Update audit result for this agent
 			team.TeamAoA.SetContributionAuditResult(agentID, agentScore, agentActualContribution, agentStatedContribution)
@@ -73,9 +73,9 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 			if cs.IsAgentDead(agentID) {
 				continue
 			}
-			agentActualWithdrawal := agent.GetActualWithdrawal()
+			agentActualWithdrawal := agent.GetActualWithdrawal(agent)
 			agentWithdrawalsTotal += agentActualWithdrawal
-			agentStatedWithdrawal := agent.GetStatedWithdrawal()
+			agentStatedWithdrawal := agent.GetStatedWithdrawal(agent)
 			agentScore := agent.GetTrueScore()
 			// Update audit result for this agent
 			team.TeamAoA.SetWithdrawalAuditResult(agentID, agentScore, agentActualWithdrawal, agentStatedWithdrawal)
@@ -309,7 +309,7 @@ func (cs *EnvironmentServer) StartAgentTeamForming() {
 
 	// Launch team formation for each agent
 	for _, agent := range cs.GetAgentMap() {
-		agent.StartTeamForming(agentInfo)
+		agent.StartTeamForming(agent, agentInfo)
 	}
 }
 
