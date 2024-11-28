@@ -7,8 +7,8 @@ package main
 
 import (
 	"SOMAS_Extended/agents"
-	"github.com/google/uuid"
 	server "SOMAS_Extended/server"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert" // assert package, easier to
 	"testing"                            // built-in go testing package
 	"time"
@@ -27,20 +27,20 @@ func TestBaseAllocation(t *testing.T) {
 
 	// Create a dummy server using the config
 	serv := server.MakeEnvServer(2, 2, 3, 1000*time.Millisecond, 10, agentConfig)
-    // Extract the list of agent IDs
-    agentIDs := make([]uuid.UUID, 0)
-    for id := range serv.GetAgentMap() {
-        agentIDs = append(agentIDs, id) 
-    }
+	// Extract the list of agent IDs
+	agentIDs := make([]uuid.UUID, 0)
+	for id := range serv.GetAgentMap() {
+		agentIDs = append(agentIDs, id)
+	}
 
-    teamID := serv.CreateAndInitTeamWithAgents(agentIDs)
-    agents := serv.GetAgentsInTeam(teamID)
-    assert.Equal(t, agentIDs, agents)
+	teamID := serv.CreateAndInitTeamWithAgents(agentIDs)
+	agents := serv.GetAgentsInTeam(teamID)
+	assert.Equal(t, agentIDs, agents)
 
 	// Ask every team if it will accept every agent
-    for agentID, agent := range serv.GetAgentMap() {
-        teamID := agent.GetTeamID() 
-        accepted := serv.RequestOrphanEntry(agentID, teamID, 1.00)
-        assert.Equal(t, true, accepted)
-    }
+	for agentID, agent := range serv.GetAgentMap() {
+		teamID := agent.GetTeamID()
+		accepted := serv.RequestOrphanEntry(agentID, teamID, 1.00)
+		assert.Equal(t, true, accepted)
+	}
 }
