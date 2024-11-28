@@ -3,8 +3,8 @@ package aoa
 import "github.com/google/uuid"
 
 type Vote struct {
-	IsVote bool
-	VoterID uuid.UUID
+	IsVote     bool
+	VoterID    uuid.UUID
 	VotedForID uuid.UUID
 }
 
@@ -20,8 +20,8 @@ type IArticlesOfAssociation interface {
 
 func CreateVote(isVote bool, voterId uuid.UUID, votedForId uuid.UUID) Vote {
 	return Vote{
-		IsVote:  isVote,
-		VoterID: voterId,
+		IsVote:     isVote,
+		VoterID:    voterId,
 		VotedForID: votedForId,
 	}
 }

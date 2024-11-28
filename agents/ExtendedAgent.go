@@ -181,7 +181,7 @@ func (mi *ExtendedAgent) DecideSelfContribution() int {
 // TODO: the value returned by this should be broadcasted to the team via a message
 // This function MUST return the same value when called multiple times in the same turn
 func (mi *ExtendedAgent) GetStatedContribution() int {
-	// Hardcoded stated 
+	// Hardcoded stated
 	statedContribution := mi.GetActualContribution()
 	return statedContribution
 
