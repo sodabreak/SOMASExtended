@@ -58,6 +58,23 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 		//  Different to the withdrawal phase!
 		team.SetCommonPool(team.GetCommonPool() + agentContributionsTotal)
 
+		// Initiate Contribution Audit vote
+		contributionAuditVotes := []aoa.Vote{}
+		for _, agentID := range team.Agents {
+			agent := cs.GetAgentMap()[agentID]
+			vote := agent.GetContributionAuditVote()
+			contributionAuditVotes = append(contributionAuditVotes, vote)
+		}
+
+		// Execute Contribution Audit if necessary
+		if agentToAudit := team.TeamAoA.GetVoteResult(contributionAuditVotes); agentToAudit != uuid.Nil {
+			auditResult := team.TeamAoA.GetContributionAuditResult(agentToAudit)
+			for _, agentID := range team.Agents {
+				agent := cs.GetAgentMap()[agentID]
+				agent.SetAgentContributionAuditResult(agentToAudit, auditResult)
+			}
+		}
+
 		orderedAgents := team.TeamAoA.GetWithdrawalOrder(team.Agents)
 		for _, agentID := range orderedAgents {
 			agent := cs.GetAgentMap()[agentID]
@@ -82,7 +99,26 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 			team.SetCommonPool(currentPool - agentActualWithdrawal)
 			fmt.Printf("[server] Agent %v withdrew %v. Remaining pool: %v\n", agentID, agentActualWithdrawal, team.GetCommonPool())
 		}
+
+		// Initiate Withdrawal Audit vote
+		withdrawalAuditVotes := []aoa.Vote{}
+		for _, agentID := range team.Agents {
+			agent := cs.GetAgentMap()[agentID]
+			vote := agent.GetWithdrawalAuditVote()
+			withdrawalAuditVotes = append(withdrawalAuditVotes, vote)
+		}
+
+		// Execute Withdrawal Audit if necessary
+		if agentToAudit := team.TeamAoA.GetVoteResult(withdrawalAuditVotes); agentToAudit != uuid.Nil {
+			auditResult := team.TeamAoA.GetWithdrawalAuditResult(agentToAudit)
+			for _, agentID := range team.Agents {
+				agent := cs.GetAgentMap()[agentID]
+				agent.SetAgentWithdrawalAuditResult(agentToAudit, auditResult)
+			}
+		}
 	}
+
+	// TODO: Reallocate agents who left their teams during the turn
 }
 
 func (cs *EnvironmentServer) RunStartOfIteration(iteration int) {
