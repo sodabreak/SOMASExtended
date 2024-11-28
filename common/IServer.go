@@ -20,4 +20,5 @@ type IServer interface {
 
 	// Debug functions
 	LogAgentStatus()
+    PrintOrphanPool()
 }

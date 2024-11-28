@@ -9,8 +9,8 @@ import (
 * part of a team. This maps agentID -> slice of teamIDs that agent wants to
 * join. Note that the slice of teams is processed in order, so the agent should
 * put the team it most wants to join at the start of the slice. */
-type orphanPool map[uuid.UUID][]uuid.UUID
-var pool = make(orphanPool)
+type OrphanPoolType map[uuid.UUID][]uuid.UUID
+var pool = make(OrphanPoolType)
 
 // The percentage of agents that have to vote 'accept' in order for an orphan
 // to be taken into a team
@@ -20,7 +20,7 @@ const MajorityVoteThreshold float32 = 0.7
 * Print the contents of the pool. Careful as this will not necessarily print
 * the elements in the order that you added them. 
 */
-func (pool orphanPool) Print() {
+func (pool OrphanPoolType) Print() {
     for i, v := range pool {
         // truncate the UUIDs to make it easier to read
         shortAgentId := i.String()[:8]
@@ -75,7 +75,7 @@ func (cs *EnvironmentServer) AllocateOrphans() {
     // This is because we want to only keep the unallocated orphans in the
     // pool. This is the safer alternative to deleting from the pool as we are
     // iterating through it. 
-    unallocated := make(orphanPool) 
+    unallocated := make(OrphanPoolType) 
 
     // for each orphan currently in the pool / shelter
     for orphanID, teamsList := range pool {
