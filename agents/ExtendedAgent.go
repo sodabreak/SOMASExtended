@@ -31,6 +31,9 @@ type ExtendedAgent struct {
 	AoARanking []int
 
 	LastTeamID uuid.UUID // Tracks the last team the agent was part of
+
+	// for recording purpose
+	trueSomasTeamID int // your true team id! e.g. team 4 -> 4. Override this in your agent constructor
 }
 
 type AgentConfig struct {
@@ -456,7 +459,7 @@ func (mi *ExtendedAgent) GetAoARanking() []int {
 func (mi *ExtendedAgent) RecordAgentStatus() gameRecorder.AgentRecord {
 	record := gameRecorder.NewAgentRecord(
 		mi.GetID(),
-		0, // mi.GetTrueSomasTeamID(), TODO
+		mi.trueSomasTeamID, // mi.GetTrueSomasTeamID()
 		mi.GetTrueScore(),
 		0, // mi.GetActualContribution(mi),
 		0, // mi.GetStatedContribution(mi),
