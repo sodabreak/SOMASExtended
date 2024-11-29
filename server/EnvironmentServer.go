@@ -54,7 +54,7 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 
 		// Update common pool with total contribution from this team
 		// 	Agents do not get to see the common pool before deciding their contribution
-		//  Different to the withdrawal phase!
+		// 	Different to the withdrawal phase!
 		team.SetCommonPool(team.GetCommonPool() + agentContributionsTotal)
 
 		// Initiate Contribution Audit vote
@@ -94,7 +94,7 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 			agent.SetTrueScore(agentScore + agentActualWithdrawal)
 
 			// Update the common pool after each withdrawal so agents can see the updated pool before deciding their withdrawal.
-			//  Different to the contribution phase!
+			// 	Different to the contribution phase!
 			team.SetCommonPool(currentPool - agentActualWithdrawal)
 			fmt.Printf("[server] Agent %v withdrew %v. Remaining pool: %v\n", agentID, agentActualWithdrawal, team.GetCommonPool())
 		}
@@ -343,9 +343,35 @@ func (cs *EnvironmentServer) StartAgentTeamForming() {
 
 	fmt.Printf("------------- [server] Starting team formation -------------\n\n")
 
-	// Launch team formation for each agent
-	for _, agent := range cs.GetAgentMap() {
-		agent.StartTeamForming(agent, agentInfo)
+	maxAttempts := 3
+	attempts := 0
+	allAgentsAttempted := false
+
+	for !allAgentsAttempted && attempts < maxAttempts {
+		allAgentsAttempted = true
+		for _, agent := range cs.GetAgentMap() {
+			if agent.GetTeamID() == uuid.Nil {
+				agent.StartTeamForming(agent, agentInfo)
+				if agent.GetTeamID() == uuid.Nil {
+					allAgentsAttempted = false
+				}
+			}
+		}
+		attempts++
+	}
+
+	// Server intervention: assign agents without teams to existing teams
+	if !allAgentsAttempted {
+		for _, agent := range cs.GetAgentMap() {
+			if agent.GetTeamID() == uuid.Nil {
+				for _, team := range cs.teams {
+					cs.AddAgentToTeam(agent.GetID(), team.TeamID)
+					agent.SetTeamID(team.TeamID)
+					fmt.Printf("[server] Agent %v assigned to team %v by server intervention\n", agent.GetID(), team.TeamID)
+					break
+				}
+			}
+		}
 	}
 }
 
