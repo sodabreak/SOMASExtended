@@ -51,18 +51,12 @@ func (t *Team1AoA) GetAuditCost(commonPool int) int {
 func (t *Team1AoA) GetVoteResult(votes []Vote) uuid.UUID {
 	// Count total votes
 	totalVotes := 0
-	for _, vote := range votes {
-		totalVotes += vote.IsVote
-	}
-	if totalVotes <= 0 {
-		return uuid.Nil // Majority does not want to vote
-	}
-
 	voteMap := make(map[uuid.UUID]int)
 	highestVotes := -1
 	highestVotedID := uuid.Nil
 	for _, vote := range votes {
-		if vote.IsVote == 0 { // Should agents who didnt want to vote, get a vote if majority wants to?
+		totalVotes += vote.IsVote
+		if vote.IsVote == 1 { // Should agents who didnt want to vote, get a vote if majority wants to?
 			voteMap[vote.VotedForID]++
 		}
 		// Check if this ID has the highest votes
@@ -70,6 +64,9 @@ func (t *Team1AoA) GetVoteResult(votes []Vote) uuid.UUID {
 			highestVotedID = vote.VotedForID
 			highestVotes = voteMap[vote.VotedForID]
 		}
+	}
+	if totalVotes <= 0 {
+		return uuid.Nil // Majority does not want to vote
 	}
 	return highestVotedID
 }
