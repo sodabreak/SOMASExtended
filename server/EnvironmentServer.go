@@ -22,7 +22,6 @@ type EnvironmentServer struct {
 
 	roundScoreThreshold int
 	deadAgents          []common.IExtendedAgent
-
 }
 
 func (cs *EnvironmentServer) RunTurn(i, j int) {

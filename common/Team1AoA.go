@@ -106,7 +106,7 @@ func CreateTeam1AoA(team *Team) IArticlesOfAssociation {
 
 	auditResult := make(map[uuid.UUID]*list.List)
 	ranking := make(map[uuid.UUID]int)
-	for _, agent := range team.Agents{
+	for _, agent := range team.Agents {
 		auditResult[agent] = list.New()
 		ranking[agent] = 0
 	}
