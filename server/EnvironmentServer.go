@@ -22,9 +22,6 @@ type EnvironmentServer struct {
 
 	roundScoreThreshold int
 	deadAgents          []common.IExtendedAgent
-
-	// set of options for team strategies (agents rank these options)
-	aoaMenu []common.IArticlesOfAssociation
 }
 
 func (cs *EnvironmentServer) RunTurn(i, j int) {
@@ -57,9 +54,6 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 		// 	Agents do not get to see the common pool before deciding their contribution
 		//  Different to the withdrawal phase!
 		team.SetCommonPool(team.GetCommonPool() + agentContributionsTotal)
-
-		// Do AoA processing
-		team.TeamAoA.RunAoAStuff()
 
 		// Initiate Contribution Audit vote
 		contributionAuditVotes := []common.Vote{}
@@ -169,7 +163,21 @@ func (cs *EnvironmentServer) AllocateAoAs() {
 		}
 
 		// Update the team's strategy
-		team.TeamAoA = cs.aoaMenu[preference]
+		switch preference {
+		case 0:
+			team.TeamAoA = common.CreateFixedAoA()
+		case 1:
+			team.TeamAoA = common.CreateFixedAoA()
+		case 2:
+			team.TeamAoA = common.CreateFixedAoA()
+		case 3:
+			team.TeamAoA = common.CreateFixedAoA()
+		case 4:
+			team.TeamAoA = common.CreateFixedAoA()
+		default:
+			team.TeamAoA = common.CreateFixedAoA()
+		}
+
 		cs.teams[team.TeamID] = team
 	}
 }
@@ -225,17 +233,6 @@ func MakeEnvServer(numAgent int, iterations int, turns int, maxDuration time.Dur
 		// TEAM 5
 		// TEAM 6
 	}
-
-	serv.aoaMenu = make([]common.IArticlesOfAssociation, 4)
-
-	// for now, menu just has 4 choices of AoA. TBC.
-	serv.aoaMenu[0] = common.CreateFixedAoA()
-
-	serv.aoaMenu[1] = common.CreateFixedAoA()
-
-	serv.aoaMenu[2] = common.CreateFixedAoA()
-
-	serv.aoaMenu[3] = common.CreateFixedAoA()
 
 	return serv
 }
