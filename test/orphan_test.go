@@ -11,6 +11,7 @@ import (
 	"testing" // built-in go testing package
 	"time"
     "reflect"
+    "fmt"
 
 	"bou.ke/monkey"
 	"github.com/google/uuid"
@@ -54,14 +55,6 @@ func mockVoteAlwaysFalse(mi *agents.ExtendedAgent, candidateID uuid.UUID) bool {
     return false
 }
 
-/* 
-* Behaviour 2 - Override the VoteOnAgentEntry function to vote yes only if the
-* agent is already in the current team
-*/
-func mockVoteBasedOnTeam(mi *agents.ExtendedAgent, candidateID uuid.UUID) bool {
-    return false
-}
-
 
 /*
 * Allocation as it occurs on the BasePlatform, where the VoteOnAgentEntry()
@@ -85,6 +78,9 @@ func TestBaseAllocation(t *testing.T) {
 	}
 }
 
+/*
+* Test if all the orphans are rejected when all agents vote 'false' to accept
+*/
 func TestAlwaysReject(t *testing.T) {
     // Create a test server and put all the agents in the same team
     serv, agentIDs := CreateTestServer()
@@ -99,5 +95,55 @@ func TestAlwaysReject(t *testing.T) {
 		teamID := agent.GetTeamID()
 		accepted := serv.RequestOrphanEntry(agentID, teamID, 1.00)
 		assert.Equal(t, false, accepted)
+	}
+}
+
+/*
+* Test basic team-based voting logic. In this example, agents will vote to
+* 'accept' an orphan if that 'orphan' is already in that team. In theory this
+* would not happen since an orphan should not be in that team. Just a basic
+* unit test
+*/
+func TestAcceptIfInCurrentTeam(t *testing.T) {
+    // Create a test server and put all the agents in the same team
+    serv, agentIDs := CreateTestServer()
+    
+    // Create two sub-teams, each with half the agents. 
+    numAgents := len(agentIDs)
+    team1ID := serv.CreateAndInitTeamWithAgents(agentIDs[:(numAgents / 2)])
+    team2ID := serv.CreateAndInitTeamWithAgents(agentIDs[(numAgents / 2):])
+
+    /* 
+    * Behaviour 2 - Override the VoteOnAgentEntry function to vote yes only if the
+    * agent is already in the current team. In order to be able to check what
+    * team we're in, we define this as a closure to have access to the server
+    * (you can't access the agent's private members inside the mock function
+    * here...
+    */
+    mockVoteBasedOnTeam := func (mi *agents.ExtendedAgent, candidateID uuid.UUID) bool {
+        myTeam := mi.GetTeamID()
+        fmt.Printf("%v (votee) is in team %v\n", mi.GetID(), myTeam)
+        candidateTeam := serv.GetTeam(candidateID).TeamID
+        fmt.Printf("%v is in team %v\n", candidateID, candidateTeam)
+        return (candidateTeam == myTeam)
+    }
+
+    // Monkey-path the voting method to only accept an agent if it is already in that team
+    monkey.PatchInstanceMethod(reflect.TypeOf(&agents.ExtendedAgent{}), "VoteOnAgentEntry", mockVoteBasedOnTeam)
+    defer monkey.UnpatchAll()
+
+    // Go through all the agents. The agent should be accepted if it is already
+    // in that team, otherwise it should be rejected. 
+    for agentID, agent := range serv.GetAgentMap() {
+		teamID := agent.GetTeamID()
+        fmt.Printf("Inspecting %v\n", teamID)
+
+        // Try to enter team1
+		accepted := serv.RequestOrphanEntry(agentID, team1ID, 1.00)
+		assert.Equal(t, (teamID == team1ID), accepted)
+
+        // Try to enter team2
+		accepted = serv.RequestOrphanEntry(agentID, team2ID, 1.00)
+		assert.Equal(t, (teamID == team2ID), accepted)
 	}
 }
