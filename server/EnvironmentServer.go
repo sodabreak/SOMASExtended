@@ -22,6 +22,9 @@ type EnvironmentServer struct {
 
 	roundScoreThreshold int
 	deadAgents          []common.IExtendedAgent
+
+	// set of options for team strategies (agents rank these options)
+	aoaMenu []common.IArticlesOfAssociation
 }
 
 func (cs *EnvironmentServer) RunTurn(i, j int) {
@@ -51,8 +54,11 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 
 		// Update common pool with total contribution from this team
 		// 	Agents do not get to see the common pool before deciding their contribution
-		//  Different to the withdrawal phase!
+		// 	Different to the withdrawal phase!
 		team.SetCommonPool(team.GetCommonPool() + agentContributionsTotal)
+
+		// Do AoA processing
+		team.TeamAoA.RunAoAStuff()
 
 		// Initiate Contribution Audit vote
 		contributionAuditVotes := []common.Vote{}
@@ -91,7 +97,7 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 			agent.SetTrueScore(agentScore + agentActualWithdrawal)
 
 			// Update the common pool after each withdrawal so agents can see the updated pool before deciding their withdrawal.
-			//  Different to the contribution phase!
+			// 	Different to the contribution phase!
 			team.SetCommonPool(currentPool - agentActualWithdrawal)
 			fmt.Printf("[server] Agent %v withdrew %v. Remaining pool: %v\n", agentID, agentActualWithdrawal, team.GetCommonPool())
 		}
@@ -161,21 +167,7 @@ func (cs *EnvironmentServer) AllocateAoAs() {
 		}
 
 		// Update the team's strategy
-		switch preference {
-		case 0:
-			team.TeamAoA = common.CreateFixedAoA()
-		case 1:
-			team.TeamAoA = common.CreateFixedAoA()
-		case 2:
-			team.TeamAoA = common.CreateFixedAoA()
-		case 3:
-			team.TeamAoA = common.CreateFixedAoA()
-		case 4:
-			team.TeamAoA = common.CreateFixedAoA()
-		default:
-			team.TeamAoA = common.CreateFixedAoA()
-		}
-
+		team.TeamAoA = cs.aoaMenu[preference]
 		cs.teams[team.TeamID] = team
 	}
 }
@@ -231,6 +223,17 @@ func MakeEnvServer(numAgent int, iterations int, turns int, maxDuration time.Dur
 		// TEAM 5
 		// TEAM 6
 	}
+
+	serv.aoaMenu = make([]common.IArticlesOfAssociation, 4)
+
+	// for now, menu just has 4 choices of AoA. TBC.
+	serv.aoaMenu[0] = common.CreateFixedAoA()
+
+	serv.aoaMenu[1] = common.CreateFixedAoA()
+
+	serv.aoaMenu[2] = common.CreateFixedAoA()
+
+	serv.aoaMenu[3] = common.CreateFixedAoA()
 
 	return serv
 }
@@ -337,12 +340,37 @@ func (cs *EnvironmentServer) StartAgentTeamForming() {
 
 	// Get updated agent info and let agents form teams
 	agentInfo := cs.UpdateAndGetAgentExposedInfo()
-
 	fmt.Printf("------------- [server] Starting team formation -------------\n\n")
 
-	// Launch team formation for each agent
-	for _, agent := range cs.GetAgentMap() {
-		agent.StartTeamForming(agent, agentInfo)
+	maxAttempts := 3
+	attempts := 0
+	allAgentsAttempted := false
+
+	for !allAgentsAttempted && attempts < maxAttempts {
+		allAgentsAttempted = true
+		for _, agent := range cs.GetAgentMap() {
+			if agent.GetTeamID() == uuid.Nil {
+				agent.StartTeamForming(agent, agentInfo)
+				if agent.GetTeamID() == uuid.Nil {
+					allAgentsAttempted = false
+				}
+			}
+		}
+		attempts++
+	}
+
+	// Server intervention: assign agents without teams to existing teams
+	if allAgentsAttempted {
+		for _, agent := range cs.GetAgentMap() {
+			if agent.GetTeamID() == uuid.Nil {
+				for _, team := range cs.teams {
+					cs.AddAgentToTeam(agent.GetID(), team.TeamID)
+					agent.SetTeamID(team.TeamID)
+					fmt.Printf("[server] Agent %v assigned to team %v by server intervention\n", agent.GetID(), team.TeamID)
+					break
+				}
+			}
+		}
 	}
 }
 
