@@ -3,21 +3,24 @@ package main
 /*
 * Code to test the functionality of the orphan pool, which deals with agents
 * that are not currently part of a team re-joining teams in subsequent turns.
-*/
+ */
 
 import (
 	"SOMAS_Extended/agents"
 	server "SOMAS_Extended/server"
+	"testing" // built-in go testing package
+	"time"
+    "reflect"
+
+	"bou.ke/monkey"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert" // assert package, easier to
-	"testing"                            // built-in go testing package
-	"time"
 )
 
 /*
 * Return a test server environment
-*/
-func CreateTestServer() *server.EnvironmentServer {
+ */
+func CreateTestServer() (*server.EnvironmentServer, []uuid.UUID) {
     // Default test config
     agentConfig := agents.AgentConfig{
 		InitScore:    0,
@@ -26,36 +29,39 @@ func CreateTestServer() *server.EnvironmentServer {
 
 	// Create a dummy server using the config
 	serv := server.MakeEnvServer(2, 2, 3, 1000*time.Millisecond, 10, agentConfig)
-    return serv
+    
+    // Extract the list of agent IDs
+    agentIDs := make([]uuid.UUID, 0)
+	for id := range serv.GetAgentMap() {
+		agentIDs = append(agentIDs, id)
+	}
+
+    return serv, agentIDs
 }
 
-/* As it stands it would be difficult to simulate different scenarios where
-* agents are accepted / rejected. To solve this problem we can introduce a mock
-* agent, which will allow us to override specific functions for testing
-* purposes. */
-type MockAgent struct { 
-    agents.ExtendedAgent 
-    /* We introduce the concept of a blacklist, such that the agent can
-    * deterministically accept / reject new agents from entering the team. This
-    * is done for testing purposes only. The VoteOnAgentEntry function will
-    * vote 'no' if the UUID is in the blacklist, and vote 'yes' otherwise. */
-    Blacklist []uuid.UUID
+/* Define Mock functions for the VoteOnAgentEntry function. These will override
+* the base implementation to test different voting logic. Yes, monkeypatching
+* is not particularly safe practice with Go but seeing as there is literally no
+* way to override the base platform during the game instantiation without
+* putting test code inside the base platform, this is the best I can think of.
+* The fact that it is so hard to override the base platfrom from outside the
+* base platform is an issue we will probably encounter later. */
+
+/* 
+* Behaviour 1 - Override the VoteOnAgentEntry function to always vote 'no'
+*/
+func mockVoteAlwaysFalse(mi *agents.ExtendedAgent, candidateID uuid.UUID) bool {
+    return false
 }
 
 /* 
-* Override the VoteOnAgentEntry function to only accept if the agent is not in
-* the blacklist
+* Behaviour 2 - Override the VoteOnAgentEntry function to vote yes only if the
+* agent is already in the current team
 */
-func (mi *MockAgent) VoteOnAgentEntry(candidateID uuid.UUID) bool {
-    // Iterate over all agents in blacklist and return false if UUID found
-    for _, blacklistedID := range mi.Blacklist {
-        if candidateID == blacklistedID {
-            return false
-        }
-    }
-    // return true otherwise
-    return true
+func mockVoteBasedOnTeam(mi *agents.ExtendedAgent, candidateID uuid.UUID) bool {
+    return false
 }
+
 
 /*
 * Allocation as it occurs on the BasePlatform, where the VoteOnAgentEntry()
@@ -63,14 +69,8 @@ func (mi *MockAgent) VoteOnAgentEntry(candidateID uuid.UUID) bool {
  */
 func TestBaseAllocation(t *testing.T) {
 	// Default Test Configuration
-    serv := CreateTestServer()
-
-    // Extract the list of agent IDs
-	agentIDs := make([]uuid.UUID, 0)
-	for id := range serv.GetAgentMap() {
-		agentIDs = append(agentIDs, id)
-	}
-
+    serv, agentIDs := CreateTestServer()
+    
 	teamID := serv.CreateAndInitTeamWithAgents(agentIDs)
 	agents := serv.GetAgentsInTeam(teamID)
 	assert.Equal(t, agentIDs, agents)
@@ -82,5 +82,22 @@ func TestBaseAllocation(t *testing.T) {
 		teamID := agent.GetTeamID()
 		accepted := serv.RequestOrphanEntry(agentID, teamID, 1.00)
 		assert.Equal(t, true, accepted)
+	}
+}
+
+func TestAlwaysReject(t *testing.T) {
+    // Create a test server and put all the agents in the same team
+    serv, agentIDs := CreateTestServer()
+	serv.CreateAndInitTeamWithAgents(agentIDs)
+
+    // Monkey-path the voting method to always reject
+    monkey.PatchInstanceMethod(reflect.TypeOf(&agents.ExtendedAgent{}), "VoteOnAgentEntry", mockVoteAlwaysFalse)
+    defer monkey.UnpatchAll()
+
+    // Go through all the agents, every agent should be rejected. 
+    for agentID, agent := range serv.GetAgentMap() {
+		teamID := agent.GetTeamID()
+		accepted := serv.RequestOrphanEntry(agentID, teamID, 1.00)
+		assert.Equal(t, false, accepted)
 	}
 }
