@@ -23,7 +23,7 @@ const MajorityVoteThreshold float32 = 0.7
 *
 * There is no logic in this function to check for the case where the agent is
 * already in the team, this is not the responsibility of this function. It
-* should not happen if the orphan pool is correctly managed.  
+* should not happen if the orphan pool is correctly managed.
  */
 func (cs *EnvironmentServer) RequestOrphanEntry(orphanID, teamID uuid.UUID, entryThreshold float32) bool {
 	// Get the team and the current number of team members
@@ -36,7 +36,7 @@ func (cs *EnvironmentServer) RequestOrphanEntry(orphanID, teamID uuid.UUID, entr
 	// For each agent in the team
 	for _, agentID := range team.Agents {
 		// Get their vote
-		vote := agent_map[agentID].VoteOnAgentEntry(agentID)
+		vote := agent_map[agentID].VoteOnAgentEntry(orphanID)
 		// increment the total votes if they vote 'yes'
 		if vote {
 			total_votes++
