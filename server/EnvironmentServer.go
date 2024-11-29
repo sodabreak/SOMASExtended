@@ -46,6 +46,7 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 			agentActualContribution := agent.GetActualContribution(agent)
 			agentContributionsTotal += agentActualContribution
 			agentStatedContribution := agent.GetStatedContribution(agent)
+			cs.StateContributionToTeam(agentID, agentStatedContribution) // Do we keep the expected amount?
 			agentScore := agent.GetTrueScore()
 			// Update audit result for this agent
 			team.TeamAoA.SetContributionAuditResult(agentID, agentScore, agentActualContribution, agentStatedContribution)
@@ -92,6 +93,7 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 			}
 			agentStatedWithdrawal := agent.GetStatedWithdrawal(agent)
 			agentScore := agent.GetTrueScore()
+			cs.StateWithdrawalToTeam(agentID, agentStatedWithdrawal) // Do we keep the expected amount?
 			// Update audit result for this agent
 			team.TeamAoA.SetWithdrawalAuditResult(agentID, agentScore, agentActualWithdrawal, agentStatedWithdrawal, team.GetCommonPool())
 			agent.SetTrueScore(agentScore + agentActualWithdrawal)
@@ -432,4 +434,30 @@ func (cs *EnvironmentServer) GetTeam(agentID uuid.UUID) *common.Team {
 	// cs.teamsMutex.RLock()
 	// defer cs.teamsMutex.RUnlock()
 	return cs.teams[cs.GetAgentMap()[agentID].GetTeamID()]
+}
+
+func (cs *EnvironmentServer) StateContributionToTeam(senderID uuid.UUID, agentStatedContribution int) {
+	sender := cs.GetAgentMap()[senderID]
+	message := sender.CreateContributionMessage(agentStatedContribution, 0) // Do we need to broadcast the expected amount?
+	team := cs.GetTeam(senderID)
+
+	for _, receiverID := range team.Agents {
+		if receiverID != senderID {
+			fmt.Print("[server] Sending contribution message from ", senderID, " to ", receiverID, "\n")
+			sender.SendSynchronousMessage(message, receiverID)
+		}
+	}
+}
+
+func (cs *EnvironmentServer) StateWithdrawalToTeam(senderID uuid.UUID, agentStatedWithdrawal int) {
+	sender := cs.GetAgentMap()[senderID]
+	message := sender.CreateWithdrawalMessage(agentStatedWithdrawal, 0) // Do we need to broadcast the expected amount?
+	team := cs.GetTeam(senderID)
+
+	for _, receiverID := range team.Agents {
+		if receiverID != senderID {
+			fmt.Print("[server] Sending withdrawal message from ", senderID, " to ", receiverID, "\n")
+			sender.SendSynchronousMessage(message, receiverID)
+		}
+	}
 }

@@ -44,6 +44,9 @@ type IExtendedAgent interface {
 
 	// Info
 	GetExposedInfo() ExposedAgentInfo
+	CreateScoreReportMessage() *ScoreReportMessage
+	CreateContributionMessage(statedAmount int, expectedAmount int) *ContributionMessage
+	CreateWithdrawalMessage(statedAmount int, expectedAmount int) *WithdrawalMessage
 	LogSelfInfo()
 	GetAoARanking() []int
 	SetAoARanking(Preferences []int)
