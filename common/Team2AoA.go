@@ -1,8 +1,10 @@
-package aoa
+package common
 
 // import "github.com/google/uuid"
 import (
 	"container/list"
+	"math/rand"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -63,14 +65,14 @@ func (t *Team2AoA) GetWithdrawalAuditResult(agentId uuid.UUID) bool {
 	return false
 }
 
-func (t *Team2AoA) GetExpectedWithdrawal(agentId uuid.UUID, agentScore int) int {
+func (t *Team2AoA) GetExpectedWithdrawal(agentId uuid.UUID, agentScore int, commonPool int) int {
 	if agentId == t.Leader {
 		return int(float64(agentScore) * 0.25)
 	}
 	return int(float64(agentScore) * 0.10)
 }
 
-func (t *Team2AoA) SetWithdrawalAuditResult(agentId uuid.UUID, agentScore int, agentActualWithdrawal int, agentStatedWithdrawal int) {
+func (t *Team2AoA) SetWithdrawalAuditResult(agentId uuid.UUID, agentScore int, agentActualWithdrawal int, agentStatedWithdrawal int, commonPool int) {
 	if agentId == t.Leader {
 		t.AuditMap[agentId].AddToQueue(float64(agentScore)*0.25 != float64(agentActualWithdrawal))
 	} else {
@@ -100,6 +102,22 @@ func (t *Team2AoA) GetVoteResult(votes []Vote) uuid.UUID {
 		}
 	}
 	return uuid.Nil // Explicitly return uuid.Nil for "no result"
+}
+
+func (t *Team2AoA) GetWithdrawalOrder(agentIDs []uuid.UUID) []uuid.UUID {
+	// Seed the random number generator to ensure different shuffles each time
+	rand.Seed(time.Now().UnixNano())
+
+	// Create a copy of the agentIDs to avoid modifying the original list
+	shuffledAgents := make([]uuid.UUID, len(agentIDs))
+	copy(shuffledAgents, agentIDs)
+
+	// Shuffle the agent list
+	rand.Shuffle(len(shuffledAgents), func(i, j int) {
+		shuffledAgents[i], shuffledAgents[j] = shuffledAgents[j], shuffledAgents[i]
+	})
+
+	return shuffledAgents
 }
 
 func CreateTeam2AoA() IArticlesOfAssociation {

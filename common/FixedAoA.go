@@ -1,6 +1,10 @@
-package aoa
+package common
 
-import "github.com/google/uuid"
+import (
+	"github.com/google/uuid"
+	"math/rand"
+	"time"
+)
 
 type FixedAoA struct {
 	ContributionAuditMap map[uuid.UUID]bool
@@ -21,11 +25,11 @@ func (f *FixedAoA) GetContributionAuditResult(agentId uuid.UUID) bool {
 	return f.ContributionAuditMap[agentId]
 }
 
-func (f *FixedAoA) GetExpectedWithdrawal(agentId uuid.UUID, agentScore int) int {
+func (f *FixedAoA) GetExpectedWithdrawal(agentId uuid.UUID, agentScore int, commonPool int) int {
 	return 2
 }
 
-func (f *FixedAoA) SetWithdrawalAuditResult(agentId uuid.UUID, agentScore int, agentActualWithdrawal int, agentStatedWithdrawal int) {
+func (f *FixedAoA) SetWithdrawalAuditResult(agentId uuid.UUID, agentScore int, agentActualWithdrawal int, agentStatedWithdrawal int, commonPool int) {
 }
 
 func (f *FixedAoA) GetWithdrawalAuditResult(agentId uuid.UUID) bool {
@@ -42,6 +46,22 @@ func (f *FixedAoA) GetAuditCost(commonPool int) int {
 // and return its UUID
 func (f *FixedAoA) GetVoteResult(votes []Vote) uuid.UUID {
 	return uuid.Nil
+}
+
+func (t *FixedAoA) GetWithdrawalOrder(agentIDs []uuid.UUID) []uuid.UUID {
+	// Seed the random number generator to ensure different shuffles each time
+	rand.Seed(time.Now().UnixNano())
+
+	// Create a copy of the agentIDs to avoid modifying the original list
+	shuffledAgents := make([]uuid.UUID, len(agentIDs))
+	copy(shuffledAgents, agentIDs)
+
+	// Shuffle the agent list
+	rand.Shuffle(len(shuffledAgents), func(i, j int) {
+		shuffledAgents[i], shuffledAgents[j] = shuffledAgents[j], shuffledAgents[i]
+	})
+
+	return shuffledAgents
 }
 
 func CreateFixedAoA() IArticlesOfAssociation {

@@ -1,9 +1,8 @@
 package environmentServer
 
 import (
-	aoa "SOMAS_Extended/ArticlesOfAssociation"
 	"SOMAS_Extended/agents"
-	"SOMAS_Extended/common"
+	common "SOMAS_Extended/common"
 	"fmt"
 	"math/rand"
 	"sync"
@@ -24,29 +23,21 @@ type EnvironmentServer struct {
 	roundScoreThreshold int
 	deadAgents          []common.IExtendedAgent
 	orphanPool          OrphanPoolType
-
-	// set of options for team strategies (agents rank these options)
-	aoaMenu []aoa.IArticlesOfAssociation
 }
 
-// overrides that requires implementation
 func (cs *EnvironmentServer) RunTurn(i, j int) {
 	fmt.Printf("\n\nIteration %v, Turn %v, current agent count: %v\n", i, j, len(cs.GetAgentMap()))
 
 	cs.teamsMutex.Lock()
 	defer cs.teamsMutex.Unlock()
 
-	// Agents roll dice and make their contributions for this turn
 	for _, team := range cs.teams {
 		fmt.Println("\nRunning turn for team ", team.TeamID)
 		// Sum of contributions from all agents in the team for this turn
 		agentContributionsTotal := 0
 		for _, agentID := range team.Agents {
 			agent := cs.GetAgentMap()[agentID]
-			if agent.GetTeamID() == uuid.Nil {
-				continue
-			}
-			if cs.IsAgentDead(agentID) {
+			if agent.GetTeamID() == uuid.Nil || cs.IsAgentDead(agentID) {
 				continue
 			}
 			agent.StartRollingDice(agent)
@@ -60,10 +51,12 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 		}
 
 		// Update common pool with total contribution from this team
+		// 	Agents do not get to see the common pool before deciding their contribution
+		//  Different to the withdrawal phase!
 		team.SetCommonPool(team.GetCommonPool() + agentContributionsTotal)
 
 		// Initiate Contribution Audit vote
-		contributionAuditVotes := []aoa.Vote{}
+		contributionAuditVotes := []common.Vote{}
 		for _, agentID := range team.Agents {
 			agent := cs.GetAgentMap()[agentID]
 			vote := agent.GetContributionAuditVote()
@@ -79,31 +72,33 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 			}
 		}
 
-		// Sum of withdrawals from all agents in the team for this turn
-		agentWithdrawalsTotal := 0
-		// All agents withdraw from common pool for this turn
-		for _, agentID := range team.Agents {
+		orderedAgents := team.TeamAoA.GetWithdrawalOrder(team.Agents)
+		for _, agentID := range orderedAgents {
 			agent := cs.GetAgentMap()[agentID]
-			if agent.GetTeamID() == uuid.Nil {
+			if agent.GetTeamID() == uuid.Nil || cs.IsAgentDead(agentID) {
 				continue
 			}
-			if cs.IsAgentDead(agentID) {
-				continue
-			}
+
+			// Pass the current pool value to agent's methods
+			currentPool := team.GetCommonPool()
 			agentActualWithdrawal := agent.GetActualWithdrawal(agent)
-			agentWithdrawalsTotal += agentActualWithdrawal
+			if agentActualWithdrawal > currentPool {
+				agentActualWithdrawal = currentPool // Ensure withdrawal does not exceed available pool
+			}
 			agentStatedWithdrawal := agent.GetStatedWithdrawal(agent)
 			agentScore := agent.GetTrueScore()
 			// Update audit result for this agent
-			team.TeamAoA.SetWithdrawalAuditResult(agentID, agentScore, agentActualWithdrawal, agentStatedWithdrawal)
+			team.TeamAoA.SetWithdrawalAuditResult(agentID, agentScore, agentActualWithdrawal, agentStatedWithdrawal, team.GetCommonPool())
 			agent.SetTrueScore(agentScore + agentActualWithdrawal)
+
+			// Update the common pool after each withdrawal so agents can see the updated pool before deciding their withdrawal.
+			//  Different to the contribution phase!
+			team.SetCommonPool(currentPool - agentActualWithdrawal)
+			fmt.Printf("[server] Agent %v withdrew %v. Remaining pool: %v\n", agentID, agentActualWithdrawal, team.GetCommonPool())
 		}
-		// Update common pool with total withdrawal from this team
-		// .. we only do this after all agents have withdrawn from the common pool
-		team.SetCommonPool(team.GetCommonPool() - agentWithdrawalsTotal)
 
 		// Initiate Withdrawal Audit vote
-		withdrawalAuditVotes := []aoa.Vote{}
+		withdrawalAuditVotes := []common.Vote{}
 		for _, agentID := range team.Agents {
 			agent := cs.GetAgentMap()[agentID]
 			vote := agent.GetWithdrawalAuditVote()
@@ -167,7 +162,21 @@ func (cs *EnvironmentServer) AllocateAoAs() {
 		}
 
 		// Update the team's strategy
-		team.TeamAoA = cs.aoaMenu[preference]
+		switch preference {
+		case 0:
+			team.TeamAoA = common.CreateFixedAoA()
+		case 1:
+			team.TeamAoA = common.CreateFixedAoA()
+		case 2:
+			team.TeamAoA = common.CreateFixedAoA()
+		case 3:
+			team.TeamAoA = common.CreateFixedAoA()
+		case 4:
+			team.TeamAoA = common.CreateFixedAoA()
+		default:
+			team.TeamAoA = common.CreateFixedAoA()
+		}
+
 		cs.teams[team.TeamID] = team
 	}
 }
@@ -223,17 +232,6 @@ func MakeEnvServer(numAgent int, iterations int, turns int, maxDuration time.Dur
 		// TEAM 5
 		// TEAM 6
 	}
-
-	serv.aoaMenu = make([]aoa.IArticlesOfAssociation, 4)
-
-	// for now, menu just has 4 choices of AoA. TBC.
-	serv.aoaMenu[0] = aoa.CreateFixedAoA()
-
-	serv.aoaMenu[1] = aoa.CreateFixedAoA()
-
-	serv.aoaMenu[2] = aoa.CreateFixedAoA()
-
-	serv.aoaMenu[3] = aoa.CreateFixedAoA()
 
 	return serv
 }
