@@ -57,9 +57,6 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 		//  Different to the withdrawal phase!
 		team.SetCommonPool(team.GetCommonPool() + agentContributionsTotal)
 
-		// Do AoA processing
-		team.TeamAoA.RunAoAStuff()
-
 		// Initiate Contribution Audit vote
 		contributionAuditVotes := []common.Vote{}
 		for _, agentID := range team.Agents {

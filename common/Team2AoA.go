@@ -120,8 +120,6 @@ func (t *Team2AoA) GetWithdrawalOrder(agentIDs []uuid.UUID) []uuid.UUID {
 	return shuffledAgents
 }
 
-func (t *Team2AoA) RunAoAStuff() {}
-
 func CreateTeam2AoA() IArticlesOfAssociation {
 	return &Team2AoA{
 		AuditMap:   make(map[uuid.UUID]*AuditQueue),

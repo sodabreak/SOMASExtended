@@ -2,7 +2,6 @@ package common
 
 import (
 	"container/list"
-
 	"github.com/google/uuid"
 )
 
@@ -17,18 +16,27 @@ func (t *Team1AoA) ResetAuditMap() {
 }
 
 func (t *Team1AoA) GetExpectedContribution(agentId uuid.UUID, agentScore int) int {
-	return 0 // Did we confirm 0?
+	return 0
 }
 
 func (t *Team1AoA) SetContributionAuditResult(agentId uuid.UUID, agentScore int, agentActualContribution int, agentStatedContribution int) {
 	t.auditResult[agentId].PushBack(agentStatedContribution > agentActualContribution)
+
+	// Just for our AoA we are updating rank based on stated
+	t.ranking[agentId] += (agentStatedContribution / 5) // Plus 1 rank every 5 points?
+
+	// Cap agent rank at 4
+	if t.ranking[agentId] > 4 {
+		t.ranking[agentId] = 4
+	}
+
 }
 
 func (t *Team1AoA) GetExpectedWithdrawal(agentId uuid.UUID, agentScore int, commonPool int) int {
 	k := t.ranking[agentId]
-	total := t.getTotalInRank(k)
+	totalInRank := t.getTotalInRank(k)
 	percentage := t.withdrawalPerRank[k]
-	expectedWithdrawal := (commonPool * (percentage)) / (total * 100)
+	expectedWithdrawal := (commonPool * (percentage)) / (totalInRank * 100)
 	return expectedWithdrawal
 }
 
@@ -37,13 +45,33 @@ func (t *Team1AoA) SetWithdrawalAuditResult(agentId uuid.UUID, agentScore int, a
 }
 
 func (t *Team1AoA) GetAuditCost(commonPool int) int {
-	return 5 // Constant cost?
+	return 5
 }
 
 func (t *Team1AoA) GetVoteResult(votes []Vote) uuid.UUID {
-	//ToDo
-	// Couldnt find how vote works
-	return uuid.Nil
+	// Count total votes
+	totalVotes := 0
+	for _, vote := range votes {
+		totalVotes += vote.IsVote
+	}
+	if totalVotes <= 0 {
+		return uuid.Nil // Majority does not want to vote
+	}
+
+	voteMap := make(map[uuid.UUID]int)
+	highestVotes := -1
+	highestVotedID := uuid.Nil
+	for _, vote := range votes {
+		if vote.IsVote == 0 { // Should agents who didnt want to vote, get a vote if majority wants to?
+			voteMap[vote.VotedForID]++
+		}
+		// Check if this ID has the highest votes
+		if voteMap[vote.VotedForID] > highestVotes {
+			highestVotedID = vote.VotedForID
+			highestVotes = voteMap[vote.VotedForID]
+		}
+	}
+	return highestVotedID
 }
 
 func (t *Team1AoA) getTotalInRank(k int) int {
@@ -56,15 +84,12 @@ func (t *Team1AoA) getTotalInRank(k int) int {
 	return total
 }
 
-func (t *Team1AoA) RunAoAStuff() {
-}
-
 func (t *Team1AoA) GetContributionAuditResult(agentId uuid.UUID) bool {
-	return false
+	return t.auditResult[agentId].Back().Value.(int) == 1
 }
 
 func (t *Team1AoA) GetWithdrawalAuditResult(agentId uuid.UUID) bool {
-	return false
+	return t.auditResult[agentId].Back().Value.(int) == 1
 }
 
 func (t *Team1AoA) GetWithdrawalOrder(agentIDs []uuid.UUID) []uuid.UUID {
