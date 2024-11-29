@@ -19,7 +19,7 @@ func main() {
 
 	// parameters: agent num PER TEAM, iterations, turns, max duration, max thread
 	// note: the zero turn is used for team forming
-	serv := envServer.MakeEnvServer(2, 2, 3, 1000*time.Millisecond, 10, agentConfig)
+	serv := envServer.MakeEnvServer(2, 2, 3, 100*time.Millisecond, 10, agentConfig)
 
 	//serv.ReportMessagingDiagnostics()
 	serv.Start()
@@ -27,4 +27,7 @@ func main() {
 	// custom function to see agent result
 	serv.LogAgentStatus()
 	serv.LogTeamStatus()
+
+	// // record data
+	serv.DataRecorder.GamePlaybackSummary()
 }

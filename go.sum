@@ -1,4 +1,6 @@
 github.com/MattSScott/basePlatformSOMAS/v2 v2.1.0 h1:VajDTjo0rqcZbTcuq5zICNqG6nQsvC0PszDEnaZ0Omg=
 github.com/MattSScott/basePlatformSOMAS/v2 v2.1.0/go.mod h1:U3HB8aYWfq+1xo1eHQhZz6yzY4kCTssrf2oDI0VvOY4=
+github.com/go-echarts/go-echarts/v2 v2.4.5 h1:gwDqxdi5x329sg+g2ws2OklreJ1K34FCimraInurzwk=
+github.com/go-echarts/go-echarts/v2 v2.4.5/go.mod h1:56YlvzhW/a+du15f3S2qUGNDfKnFOeJSThBIrVFHDtI=
 github.com/google/uuid v1.3.0 h1:t6JiXgmwXMjEs8VusXIJk2BXHsn+wx8BZdTaoZ5fu7I=
 github.com/google/uuid v1.3.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=

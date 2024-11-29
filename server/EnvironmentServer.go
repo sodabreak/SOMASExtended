@@ -3,6 +3,7 @@ package environmentServer
 import (
 	"SOMAS_Extended/agents"
 	common "SOMAS_Extended/common"
+	gameRecorder "SOMAS_Extended/gameRecorder"
 	"fmt"
 	"math/rand"
 	"sync"
@@ -25,6 +26,9 @@ type EnvironmentServer struct {
 
 	// set of options for team strategies (agents rank these options)
 	aoaMenu []common.IArticlesOfAssociation
+
+	// data recorder
+	DataRecorder *gameRecorder.ServerDataRecorder
 }
 
 func (cs *EnvironmentServer) RunTurn(i, j int) {
@@ -121,10 +125,16 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 	}
 
 	// TODO: Reallocate agents who left their teams during the turn
+
+	// record data
+	cs.RecordTurnInfo()
 }
 
 func (cs *EnvironmentServer) RunStartOfIteration(iteration int) {
 	fmt.Printf("--------Start of iteration %v---------\n", iteration)
+
+	// record data
+	cs.DataRecorder.RecordNewIteration()
 
 	// Initialise random threshold
 	cs.CreateNewRoundScoreThreshold()
@@ -182,8 +192,6 @@ func (cs *EnvironmentServer) RunEndOfIteration(int) {
 func (cs *EnvironmentServer) Start() {
 	// steal method from package...
 	cs.BaseServer.Start()
-
-	// TODO
 }
 
 func (cs *EnvironmentServer) ReviveDeadAgents() {
@@ -234,6 +242,8 @@ func MakeEnvServer(numAgent int, iterations int, turns int, maxDuration time.Dur
 	serv.aoaMenu[2] = common.CreateFixedAoA()
 
 	serv.aoaMenu[3] = common.CreateFixedAoA()
+
+	serv.DataRecorder = gameRecorder.CreateRecorder()
 
 	return serv
 }
@@ -432,4 +442,23 @@ func (cs *EnvironmentServer) GetTeam(agentID uuid.UUID) *common.Team {
 	// cs.teamsMutex.RLock()
 	// defer cs.teamsMutex.RUnlock()
 	return cs.teams[cs.GetAgentMap()[agentID].GetTeamID()]
+}
+
+func (cs *EnvironmentServer) RecordTurnInfo() {
+
+	// agent information
+	agentRecords := []gameRecorder.AgentRecord{}
+	for _, agent := range cs.GetAgentMap() {
+		newAgentRecord := agent.RecordAgentStatus()
+		agentRecords = append(agentRecords, newAgentRecord)
+	}
+
+	for _, agent := range cs.deadAgents {
+		newAgentRecord := agent.RecordAgentStatus()
+		agentRecords = append(agentRecords, newAgentRecord)
+	}
+
+	teamRecords := []gameRecorder.TeamRecord{}
+
+	cs.DataRecorder.RecordNewTurn(agentRecords, teamRecords)
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 
 	common "SOMAS_Extended/common"
+	gameRecorder "SOMAS_Extended/gameRecorder"
 
 	// TODO:
 
@@ -449,4 +450,19 @@ func (mi *ExtendedAgent) SetAoARanking(Preferences []int) {
 
 func (mi *ExtendedAgent) GetAoARanking() []int {
 	return mi.AoARanking
+}
+
+// ----------------------- Data Recording Functions -----------------------
+func (mi *ExtendedAgent) RecordAgentStatus() gameRecorder.AgentRecord {
+	record := gameRecorder.NewAgentRecord(
+		mi.GetID(),
+		0, // mi.GetTrueSomasTeamID(), TODO
+		mi.GetTrueScore(),
+		0, // mi.GetActualContribution(mi),
+		0, // mi.GetStatedContribution(mi),
+		0, // mi.GetActualWithdrawal(mi),
+		0, // mi.GetStatedWithdrawal(mi),
+		mi.GetTeamID(),
+	)
+	return record
 }
