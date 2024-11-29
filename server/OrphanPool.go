@@ -20,6 +20,10 @@ const MajorityVoteThreshold float32 = 0.7
 * into the team. This function accepts a threshold, that is used to determine
 * whether to grant entry or not. For example, a threshold of 0.7 means that at
 * least 70% of agents in the team have to be willing to accept the orphan.
+*
+* There is no logic in this function to check for the case where the agent is
+* already in the team, this is not the responsibility of this function. It
+* should not happen if the orphan pool is correctly managed.  
  */
 func (cs *EnvironmentServer) RequestOrphanEntry(orphanID, teamID uuid.UUID, entryThreshold float32) bool {
 	// Get the team and the current number of team members
