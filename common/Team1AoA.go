@@ -96,7 +96,7 @@ func (t *Team1AoA) GetWithdrawalOrder(agentIDs []uuid.UUID) []uuid.UUID {
 	return agentIDs
 }
 
-func CreateTeam1AoA() IArticlesOfAssociation {
+func CreateTeam1AoA(team *Team) IArticlesOfAssociation {
 	withdrawalPerRank := make(map[int]int)
 	withdrawalPerRank[0] = 5
 	withdrawalPerRank[1] = 5
@@ -104,9 +104,16 @@ func CreateTeam1AoA() IArticlesOfAssociation {
 	withdrawalPerRank[3] = 20
 	withdrawalPerRank[4] = 40
 
+	auditResult := make(map[uuid.UUID]*list.List)
+	ranking := make(map[uuid.UUID]int)
+	for _, agent := range team.Agents{
+		auditResult[agent] = list.New()
+		ranking[agent] = 0
+	}
+
 	return &Team1AoA{
-		auditResult:       make(map[uuid.UUID]*list.List),
-		ranking:           make(map[uuid.UUID]int),
+		auditResult:       auditResult,
+		ranking:           ranking,
 		withdrawalPerRank: withdrawalPerRank,
 	}
 }
