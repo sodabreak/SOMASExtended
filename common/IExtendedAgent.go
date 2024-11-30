@@ -38,6 +38,7 @@ type IExtendedAgent interface {
 	DecideContribution() int
 	DecideWithdrawal() int
 	VoteOnAgentEntry(candidateID uuid.UUID) bool
+	StickOrAgainFor(agentId uuid.UUID, accumulatedScore int, prevRoll int) int
 
 	// Messaging functions
 	HandleTeamFormationMessage(msg *TeamFormationMessage)
