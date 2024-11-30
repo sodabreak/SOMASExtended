@@ -28,6 +28,13 @@ type EnvironmentServer struct {
 func (cs *EnvironmentServer) RunTurn(i, j int) {
 	fmt.Printf("\n\nIteration %v, Turn %v, current agent count: %v\n", i, j, len(cs.GetAgentMap()))
 
+    // Go over the list of all agents and add orphans to the orphan pool if
+    // they are not already there
+    cs.PickUpOrphans()
+
+    // Attempt to allocate the orphans to their preferred teams
+    cs.AllocateOrphans()
+
 	cs.teamsMutex.Lock()
 	defer cs.teamsMutex.Unlock()
 

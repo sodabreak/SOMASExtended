@@ -84,3 +84,27 @@ func (cs *EnvironmentServer) AllocateOrphans() {
 	// Assign the unallocated pool as the new orphan pool.
 	cs.orphanPool = unallocated
 }
+
+/*
+* Go over all the agents in the agent map. If there is an agent that is not
+* part of a team, then add it to the orphan pool. This allows the server to
+* actively pick up agents that have been removed from a team or that have left.
+* This prevents agents from having to tell the server to 'make me an orphan'. 
+*
+* This will not break for dead agents, because dead agents should be in a
+* separate map. (deadAgents)
+*/
+func (cs *EnvironmentServer) PickUpOrphans() {
+    // sweep over all the agents in the server's agent map
+    for agentID := range cs.GetAgentMap() {
+        // if the agent does not belong to a team, and is not in the orphan
+        // pool already, then add it to the orphan pool. 
+        _, exists := cs.orphanPool[agentID]
+
+        if !exists {
+		    fmt.Printf("%v was added to the orphan pool \n", agentID)
+            cs.orphanPool[agentID] = make([]uuid.UUID, 0) 
+        }
+    }
+}
+
