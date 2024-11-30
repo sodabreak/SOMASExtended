@@ -89,22 +89,31 @@ func (cs *EnvironmentServer) AllocateOrphans() {
 * Go over all the agents in the agent map. If there is an agent that is not
 * part of a team, then add it to the orphan pool. This allows the server to
 * actively pick up agents that have been removed from a team or that have left.
-* This prevents agents from having to tell the server to 'make me an orphan'. 
+* This prevents agents from having to tell the server to 'please put me in the
+* orphan pool'. 
 *
 * This will not break for dead agents, because dead agents should be in a
 * separate map. (deadAgents)
 */
 func (cs *EnvironmentServer) PickUpOrphans() {
     // sweep over all the agents in the server's agent map
-    for agentID := range cs.GetAgentMap() {
-        // if the agent does not belong to a team, and is not in the orphan
-        // pool already, then add it to the orphan pool. 
-        _, exists := cs.orphanPool[agentID]
+    for agentID, agent := range cs.GetAgentMap() {
 
-        if !exists {
-		    fmt.Printf("%v was added to the orphan pool \n", agentID)
-            cs.orphanPool[agentID] = make([]uuid.UUID, 0) 
+        // If the agent is not part of a team
+        if agent.GetTeamID() == uuid.Nil {
+            // if the agent does not belong to a team, and is not in the orphan
+            // pool already, then add it to the orphan pool. 
+            _, exists := cs.orphanPool[agentID]
+
+            if !exists {
+                fmt.Printf("%v was added to the orphan pool \n", agentID)
+            }
+
+            // Extract the preferences from the agent, and update them. We do
+            // this even for orphans that are already in the pool because we want
+            // them to be able to update their preferences on which teams they
+            // would like to join 
+            cs.orphanPool[agentID] = agent.GetTeamRanking()
         }
     }
 }
-

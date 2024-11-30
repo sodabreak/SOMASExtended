@@ -29,6 +29,12 @@ type ExtendedAgent struct {
 	// AoA vote
 	AoARanking []int
 
+    /* Team Ranking - Tracks the teams that the agent would like to join (if /
+    * when it is an orphan) in order of preference. Lowest index = highest
+    * priority. If this is empty, the server will not attempt to allocate the
+    * orphan to a team. */
+    TeamRanking []uuid.UUID 
+
 	LastTeamID uuid.UUID // Tracks the last team the agent was part of
 }
 
@@ -460,4 +466,9 @@ func (mi *ExtendedAgent) VoteOnAgentEntry(candidateID uuid.UUID) bool {
 	// TODO: Implement strategy for accepting an agent into the team.
 	// Return true to accept them, false to not accept them.
 	return true
+}
+
+// Return the team ranking
+func (mi *ExtendedAgent) GetTeamRanking() []uuid.UUID {
+	return mi.TeamRanking
 }
