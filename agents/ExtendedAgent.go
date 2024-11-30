@@ -29,11 +29,11 @@ type ExtendedAgent struct {
 	// AoA vote
 	AoARanking []int
 
-    /* Team Ranking - Tracks the teams that the agent would like to join (if /
-    * when it is an orphan) in order of preference. Lowest index = highest
-    * priority. If this is empty, the server will not attempt to allocate the
-    * orphan to a team. */
-    TeamRanking []uuid.UUID 
+	/* Team Ranking - Tracks the teams that the agent would like to join (if /
+	 * when it is an orphan) in order of preference. Lowest index = highest
+	 * priority. If this is empty, the server will not attempt to allocate the
+	 * orphan to a team. */
+	TeamRanking []uuid.UUID
 
 	LastTeamID uuid.UUID // Tracks the last team the agent was part of
 }
@@ -50,6 +50,7 @@ func GetBaseAgents(funcs agent.IExposedServerFunctions[common.IExtendedAgent], c
 		score:        configParam.InitScore,
 		verboseLevel: configParam.VerboseLevel,
 		AoARanking:   []int{3, 2, 1, 0},
+		TeamRanking:  []uuid.UUID{},
 	}
 }
 
@@ -471,4 +472,11 @@ func (mi *ExtendedAgent) VoteOnAgentEntry(candidateID uuid.UUID) bool {
 // Return the team ranking
 func (mi *ExtendedAgent) GetTeamRanking() []uuid.UUID {
 	return mi.TeamRanking
+}
+
+// Set the team ranking of which teams this agent would like to join - lower
+// index = higher priority. This can be updated as the game goes on, the server
+// will only act on this information when the agent is orphaned.
+func (mi *ExtendedAgent) SetTeamRanking(teamRanking []uuid.UUID) {
+	mi.TeamRanking = teamRanking
 }

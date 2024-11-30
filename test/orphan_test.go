@@ -58,7 +58,7 @@ func mockVoteAlwaysFalse(mi *agents.ExtendedAgent, candidateID uuid.UUID) bool {
 * Allocation as it occurs on the BasePlatform, where the VoteOnAgentEntry()
 * function returns true for every candidate ID
  */
-func TestBaseAllocation(t *testing.T) {
+func TestAlwaysAccept(t *testing.T) {
 	// Default Test Configuration
 	serv, agentIDs := CreateTestServer()
 
@@ -141,4 +141,38 @@ func TestAcceptIfInCurrentTeam(t *testing.T) {
 		accepted = serv.RequestOrphanEntry(agentID, team2ID, 1.00)
 		assert.Equal(t, (teamID == team2ID), accepted)
 	}
+}
+
+/*
+* Test that the server can allocate orphans to a team
+ */
+func TestAllocateOrphans(t *testing.T) {
+	// Create the test server
+	serv, agentIDs := CreateTestServer()
+	agent_map := serv.GetAgentMap()
+
+	// Allocate all agents but the first two to a team
+	orphan1 := agentIDs[0]
+	orphan2 := agentIDs[1]
+	teamID := serv.CreateAndInitTeamWithAgents(agentIDs[2:])
+
+	// Set the preferences of these agents to the team ID
+	agent_map[orphan1].SetTeamRanking([]uuid.UUID{teamID})
+	agent_map[orphan2].SetTeamRanking([]uuid.UUID{teamID})
+
+	// Sweep and add these orphans to the orphan pool (this function would
+	// normally be called inside RunTurn())
+	serv.PickUpOrphans()
+
+	// Attempt to allocate the orphans (also called in RunTurn)
+	serv.AllocateOrphans()
+
+	// The default VoteOnAgentEntry method just returns 'true', so all orphans
+	// should be accepted by the team.
+
+	// Both agents are associated with that team
+	assert.Equal(t, teamID, serv.GetAgentMap()[agentIDs[0]].GetTeamID())
+	assert.Equal(t, teamID, serv.GetAgentMap()[agentIDs[1]].GetTeamID())
+	// All agents in the game are now in one team
+	assert.Equal(t, len(agentIDs), len(serv.GetTeamFromTeamID(teamID).Agents))
 }

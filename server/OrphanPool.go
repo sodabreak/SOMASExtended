@@ -64,21 +64,31 @@ func (cs *EnvironmentServer) AllocateOrphans() {
 
 	// for each orphan currently in the pool / shelter
 	for orphanID, teamsList := range cs.orphanPool {
+		fmt.Printf("allocating %v\n", orphanID)
+		var accepted = false
 		// for each team that orphan wants to join
 		for _, teamID := range teamsList {
-			accepted := cs.RequestOrphanEntry(orphanID, teamID, MajorityVoteThreshold)
+			fmt.Printf("team id testing is %v\n", teamID)
+			// Skip if already accepted into a team
+			if accepted {
+				break
+			}
+
+			// Otherwise attempt to join the team
+			accepted = cs.RequestOrphanEntry(orphanID, teamID, MajorityVoteThreshold)
 			// If the team has voted to accept the orphan
 			if accepted {
-				orphan := agent_map[orphanID]
-				orphan.SetTeamID(teamID)            // Update agent's knowledge of its team
-				cs.AddAgentToTeam(orphanID, teamID) // Update team's knowledge of its agents
-				delete(cs.orphanPool, orphanID)     // remove the agent from the orphan pool
+				agent_map[orphanID].SetTeamID(teamID) // Update agent's knowledge of its team
+				cs.AddAgentToTeam(orphanID, teamID)   // Update team's knowledge of its agents
+				fmt.Printf("%v accepted by team %v !!\n", orphanID, teamID)
 			}
 			// Otherwise, continue to the next team in the preference list.
 		}
 
-		unallocated[orphanID] = teamsList // add to unallocated
-		fmt.Printf("%v remains in the orphan pool after allocation...\n", orphanID)
+		if !accepted {
+			unallocated[orphanID] = teamsList // add to unallocated
+			fmt.Printf("%v remains in the orphan pool after allocation...\n", orphanID)
+		}
 	}
 
 	// Assign the unallocated pool as the new orphan pool.
@@ -90,30 +100,41 @@ func (cs *EnvironmentServer) AllocateOrphans() {
 * part of a team, then add it to the orphan pool. This allows the server to
 * actively pick up agents that have been removed from a team or that have left.
 * This prevents agents from having to tell the server to 'please put me in the
-* orphan pool'. 
+* orphan pool'.
 *
 * This will not break for dead agents, because dead agents should be in a
 * separate map. (deadAgents)
-*/
+ */
 func (cs *EnvironmentServer) PickUpOrphans() {
-    // sweep over all the agents in the server's agent map
-    for agentID, agent := range cs.GetAgentMap() {
 
-        // If the agent is not part of a team
-        if agent.GetTeamID() == uuid.Nil {
-            // if the agent does not belong to a team, and is not in the orphan
-            // pool already, then add it to the orphan pool. 
-            _, exists := cs.orphanPool[agentID]
+	// Initialise the orphanPool map if it is nil
+	if cs.orphanPool == nil {
+		cs.orphanPool = make(OrphanPoolType, 0)
+	}
 
-            if !exists {
-                fmt.Printf("%v was added to the orphan pool \n", agentID)
-            }
+	// sweep over all the agents in the server's agent map
+	for agentID, agent := range cs.GetAgentMap() {
 
-            // Extract the preferences from the agent, and update them. We do
-            // this even for orphans that are already in the pool because we want
-            // them to be able to update their preferences on which teams they
-            // would like to join 
-            cs.orphanPool[agentID] = agent.GetTeamRanking()
-        }
-    }
+		// If the agent is not part of a team
+		if agent.GetTeamID() == uuid.Nil {
+			// if the agent does not belong to a team, and is not in the orphan
+			// pool already, then add it to the orphan pool.
+			_, exists := cs.orphanPool[agentID]
+
+			// Extract the preferences from the agent, and update them. We do
+			// this even for orphans that are already in the pool because we want
+			// them to be able to update their preferences on which teams they
+			// would like to join
+			fmt.Printf("testing %v\n", agentID)
+			cs.orphanPool[agentID] = agent.GetTeamRanking()
+
+			for _, x := range cs.orphanPool[agentID] {
+				fmt.Printf("wants to join %v\n", x)
+			}
+
+			if !exists {
+				fmt.Printf("%v was added to the orphan pool \n", agentID)
+			}
+		}
+	}
 }

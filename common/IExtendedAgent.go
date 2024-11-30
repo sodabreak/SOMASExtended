@@ -12,7 +12,7 @@ type IExtendedAgent interface {
 	GetTeamID() uuid.UUID
 	GetLastTeamID() uuid.UUID
 	GetTrueScore() int
-    GetTeamRanking() []uuid.UUID
+	GetTeamRanking() []uuid.UUID
 
 	// Functions that involve strategic decisions
 	StartTeamForming(instance IExtendedAgent, agentInfoList []ExposedAgentInfo)
@@ -27,6 +27,7 @@ type IExtendedAgent interface {
 	SetTrueScore(score int)
 	SetAgentContributionAuditResult(agentID uuid.UUID, result bool)
 	SetAgentWithdrawalAuditResult(agentID uuid.UUID, result bool)
+	SetTeamRanking(teamRanking []uuid.UUID)
 	DecideStick()
 	DecideRollAgain()
 
