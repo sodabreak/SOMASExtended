@@ -46,7 +46,9 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 			agentActualContribution := agent.GetActualContribution(agent)
 			agentContributionsTotal += agentActualContribution
 			agentStatedContribution := agent.GetStatedContribution(agent)
-			cs.StateContributionToTeam(agentID, agentStatedContribution) // Do we keep the expected amount?
+			agentExpectedContribution := team.TeamAoA.GetExpectedContribution(agentID, agent.GetTrueScore())
+
+			cs.StateContributionToTeam(agentID, agentStatedContribution, agentExpectedContribution)
 			agentScore := agent.GetTrueScore()
 			// Update audit result for this agent
 			team.TeamAoA.SetContributionAuditResult(agentID, agentScore, agentActualContribution, agentStatedContribution)
@@ -89,8 +91,10 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 				agentActualWithdrawal = currentPool // Ensure withdrawal does not exceed available pool
 			}
 			agentStatedWithdrawal := agent.GetStatedWithdrawal(agent)
+			agentExpectedWithdrawal := team.TeamAoA.GetExpectedWithdrawal(agentID, agent.GetTrueScore(), currentPool)
+
 			agentScore := agent.GetTrueScore()
-			cs.StateWithdrawalToTeam(agentID, agentStatedWithdrawal) // Do we keep the expected amount?
+			cs.StateWithdrawalToTeam(agentID, agentStatedWithdrawal, agentExpectedWithdrawal)
 			// Update audit result for this agent
 			team.TeamAoA.SetWithdrawalAuditResult(agentID, agentScore, agentActualWithdrawal, agentStatedWithdrawal, team.GetCommonPool())
 			agent.SetTrueScore(agentScore + agentActualWithdrawal)
@@ -494,16 +498,16 @@ func generateScore() int {
 	return score
 }
 
-func (cs *EnvironmentServer) StateContributionToTeam(senderID uuid.UUID, agentStatedContribution int) {
+func (cs *EnvironmentServer) StateContributionToTeam(senderID uuid.UUID, agentStatedContribution int, agentExpectedContribution int) {
 	sender := cs.GetAgentMap()[senderID]
-	message := sender.CreateContributionMessage(agentStatedContribution, 0) // Do we need to broadcast the expected amount?
+	message := sender.CreateContributionMessage(agentStatedContribution, agentExpectedContribution)
 
 	sender.BroadcastSyncMessageToTeam(message)
 }
 
-func (cs *EnvironmentServer) StateWithdrawalToTeam(senderID uuid.UUID, agentStatedWithdrawal int) {
+func (cs *EnvironmentServer) StateWithdrawalToTeam(senderID uuid.UUID, agentStatedWithdrawal int, agentExpectedWithdrawal int) {
 	sender := cs.GetAgentMap()[senderID]
-	message := sender.CreateWithdrawalMessage(agentStatedWithdrawal, 0) // Do we need to broadcast the expected amount?
+	message := sender.CreateWithdrawalMessage(agentStatedWithdrawal, agentExpectedWithdrawal)
 
 	sender.BroadcastSyncMessageToTeam(message)
 }
