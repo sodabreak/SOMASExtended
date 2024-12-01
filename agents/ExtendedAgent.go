@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
-	common "SOMAS_Extended/common"
+	common "github.com/ADimoska/SOMASExtended/common"
 
 	// TODO:
 
@@ -221,6 +221,16 @@ func (mi *ExtendedAgent) DecideWithdrawal() int {
 	}
 }
 
+/*
+Provide agentId for memory, current accumulated score
+(to see if above or below predicted threshold for common pool contribution)
+And previous roll in case relevant
+*/
+func (mi *ExtendedAgent) StickOrAgainFor(agentId uuid.UUID, accumulatedScore int, prevRoll int) int {
+	// random chance, to simulate what is already implemented
+	return rand.Intn(2)
+}
+
 // dev function
 func (mi *ExtendedAgent) LogSelfInfo() {
 	fmt.Printf("[Agent %s] score: %v\n", mi.GetID(), mi.score)
@@ -307,6 +317,20 @@ func (mi *ExtendedAgent) BroadcastSyncMessageToTeam(msg message.IMessage[common.
 	}
 }
 
+func (mi *ExtendedAgent) StateContributionToTeam() {
+	// Broadcast contribution to team
+	statedContribution := mi.GetStatedContribution(mi)
+	contributionMsg := mi.CreateContributionMessage(statedContribution)
+	mi.BroadcastSyncMessageToTeam(contributionMsg)
+}
+
+func (mi *ExtendedAgent) StateWithdrawalToTeam() {
+	// Broadcast withdrawal to team
+	statedWithdrawal := mi.GetStatedWithdrawal(mi)
+	withdrawalMsg := mi.CreateWithdrawalMessage(statedWithdrawal)
+	mi.BroadcastSyncMessageToTeam(withdrawalMsg)
+}
+
 // ----------------------- Info functions -----------------------
 func (mi *ExtendedAgent) GetExposedInfo() common.ExposedAgentInfo {
 	return common.ExposedAgentInfo{
@@ -322,19 +346,17 @@ func (mi *ExtendedAgent) CreateScoreReportMessage() *common.ScoreReportMessage {
 	}
 }
 
-func (mi *ExtendedAgent) CreateContributionMessage(statedAmount int, expectedAmount int) *common.ContributionMessage {
+func (mi *ExtendedAgent) CreateContributionMessage(statedAmount int) *common.ContributionMessage {
 	return &common.ContributionMessage{
-		BaseMessage:    mi.CreateBaseMessage(),
-		StatedAmount:   statedAmount,
-		ExpectedAmount: expectedAmount,
+		BaseMessage:  mi.CreateBaseMessage(),
+		StatedAmount: statedAmount,
 	}
 }
 
-func (mi *ExtendedAgent) CreateWithdrawalMessage(statedAmount int, expectedAmount int) *common.WithdrawalMessage {
+func (mi *ExtendedAgent) CreateWithdrawalMessage(statedAmount int) *common.WithdrawalMessage {
 	return &common.WithdrawalMessage{
-		BaseMessage:    mi.CreateBaseMessage(),
-		StatedAmount:   statedAmount,
-		ExpectedAmount: expectedAmount,
+		BaseMessage:  mi.CreateBaseMessage(),
+		StatedAmount: statedAmount,
 	}
 }
 
