@@ -47,10 +47,7 @@ func (a *AuditRecord) GetAllInfractions(agentId uuid.UUID) int {
 	infractions := 0
 	records := a.auditMap[agentId]
 
-	history := len(records)
-	if history > a.duration {
-		history = a.duration
-	}
+	history := min(a.duration, len(records))
 
 	for _, infraction := range records[len(records)-history:] {
 		infractions += infraction
@@ -94,5 +91,9 @@ func (a *AuditRecord) IncrementLastRecord(agentId uuid.UUID) {
 	}
 
 	records := a.auditMap[agentId]
+	if len(records) == 0 {
+		return
+	}
+
 	records[len(records)-1]++
 }
