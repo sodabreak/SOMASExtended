@@ -373,8 +373,8 @@ func (cs *EnvironmentServer) AddAgentToTeam(agentID uuid.UUID, teamID uuid.UUID)
 }
 
 func (cs *EnvironmentServer) GetAgentsInTeam(teamID uuid.UUID) []uuid.UUID {
-	cs.teamsMutex.RLock()
-	defer cs.teamsMutex.RUnlock()
+	// cs.teamsMutex.RLock()
+	// defer cs.teamsMutex.RUnlock()
 	return cs.teams[teamID].Agents
 }
 
@@ -436,25 +436,13 @@ func (cs *EnvironmentServer) GetTeam(agentID uuid.UUID) *common.Team {
 func (cs *EnvironmentServer) StateContributionToTeam(senderID uuid.UUID, agentStatedContribution int) {
 	sender := cs.GetAgentMap()[senderID]
 	message := sender.CreateContributionMessage(agentStatedContribution, 0) // Do we need to broadcast the expected amount?
-	team := cs.GetTeam(senderID)
 
-	for _, receiverID := range team.Agents {
-		if receiverID != senderID {
-			fmt.Print("[server] Sending contribution message from ", senderID, " to ", receiverID, "\n")
-			sender.SendSynchronousMessage(message, receiverID)
-		}
-	}
+	sender.BroadcastSyncMessageToTeam(message)
 }
 
 func (cs *EnvironmentServer) StateWithdrawalToTeam(senderID uuid.UUID, agentStatedWithdrawal int) {
 	sender := cs.GetAgentMap()[senderID]
 	message := sender.CreateWithdrawalMessage(agentStatedWithdrawal, 0) // Do we need to broadcast the expected amount?
-	team := cs.GetTeam(senderID)
 
-	for _, receiverID := range team.Agents {
-		if receiverID != senderID {
-			fmt.Print("[server] Sending withdrawal message from ", senderID, " to ", receiverID, "\n")
-			sender.SendSynchronousMessage(message, receiverID)
-		}
-	}
+	sender.BroadcastSyncMessageToTeam(message)
 }

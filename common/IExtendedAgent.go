@@ -3,6 +3,8 @@ package common
 import (
 	"github.com/MattSScott/basePlatformSOMAS/v2/pkg/agent"
 	"github.com/google/uuid"
+
+	"github.com/MattSScott/basePlatformSOMAS/v2/pkg/message"
 )
 
 type IExtendedAgent interface {
@@ -40,6 +42,7 @@ type IExtendedAgent interface {
 	HandleTeamFormationMessage(msg *TeamFormationMessage)
 	HandleScoreReportMessage(msg *ScoreReportMessage)
 	HandleWithdrawalMessage(msg *WithdrawalMessage)
+	BroadcastSyncMessageToTeam(msg message.IMessage[IExtendedAgent])
 	HandleContributionMessage(msg *ContributionMessage)
 
 	// Info
