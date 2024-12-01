@@ -6,8 +6,10 @@ package main
  */
 
 import (
-	"SOMAS_Extended/agents"
-	server "SOMAS_Extended/server"
+	agents "github.com/ADimoska/SOMASExtended/agents"
+	common "github.com/ADimoska/SOMASExtended/common"
+	envServer "github.com/ADimoska/SOMASExtended/server"
+	baseServer "github.com/MattSScott/basePlatformSOMAS/v2/pkg/server"
 	"reflect"
 	"testing" // built-in go testing package
 	"time"
@@ -20,15 +22,32 @@ import (
 /*
 * Return a test server environment
  */
-func CreateTestServer() (*server.EnvironmentServer, []uuid.UUID) {
+func CreateTestServer() (*envServer.EnvironmentServer, []uuid.UUID) {
 	// Default test config
 	agentConfig := agents.AgentConfig{
 		InitScore:    0,
 		VerboseLevel: 10,
 	}
 
-	// Create a dummy server using the config
-	serv := server.MakeEnvServer(2, 2, 3, 1000*time.Millisecond, 10, agentConfig)
+	serv := &envServer.EnvironmentServer{
+		// note: the zero turn is used for team forming
+		BaseServer: baseServer.CreateBaseServer[common.IExtendedAgent](2, 3, 1000*time.Millisecond, 10),
+		Teams:      make(map[uuid.UUID]*common.Team),
+	}
+	serv.SetGameRunner(serv)
+
+	const numAgents int = 2
+
+	agentPopulation := []common.IExtendedAgent{}
+	for i := 0; i < numAgents; i++ {
+		agentPopulation = append(agentPopulation, agents.Team4_CreateAgent(serv, agentConfig))
+		agentPopulation = append(agentPopulation, agents.GetBaseAgents(serv, agentConfig))
+		// Add other teams' agents here
+	}
+
+	for _, agent := range agentPopulation {
+		serv.AddAgent(agent)
+	}
 
 	// Extract the list of agent IDs
 	agentIDs := make([]uuid.UUID, 0)

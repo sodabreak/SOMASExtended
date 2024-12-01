@@ -450,7 +450,7 @@ func (cs *EnvironmentServer) GetTeam(agentID uuid.UUID) *common.Team {
 
 // Get team from team ID, mostly for testing.
 func (cs *EnvironmentServer) GetTeamFromTeamID(teamID uuid.UUID) *common.Team {
-	return cs.teams[teamID]
+	return cs.Teams[teamID]
 }
 
 // Possibly needs to look at what team/AoA is being used to tally up the votes
