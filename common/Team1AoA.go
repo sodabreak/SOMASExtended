@@ -26,7 +26,7 @@ func (t *Team1AoA) SetContributionAuditResult(agentId uuid.UUID, agentScore int,
 	// Just for our AoA we are updating rank based on stated
 	t.ranking[agentId] += (agentStatedContribution / t.threshold) // Plus 1 rank every `threshold` points?
 
-	// Cap agent rank at 4
+	// Cap agent rank at 5
 	if t.ranking[agentId] > 5 {
 		t.ranking[agentId] = 5
 	}
