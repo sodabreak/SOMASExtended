@@ -1,9 +1,9 @@
 package environmentServer
 
 import (
-	"SOMAS_Extended/agents"
-	common "SOMAS_Extended/common"
 	"fmt"
+	agents "github.com/ADimoska/SOMASExtended/agents"
+	common "github.com/ADimoska/SOMASExtended/common"
 	"math/rand"
 	"sync"
 	"time"

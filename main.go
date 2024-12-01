@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"SOMAS_Extended/agents"
-	envServer "SOMAS_Extended/server"
+	agents "github.com/ADimoska/SOMASExtended/agents"
+	envServer "github.com/ADimoska/SOMASExtended/server"
 )
 
 func main() {
