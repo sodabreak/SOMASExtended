@@ -92,7 +92,6 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 			agentStatedWithdrawal := agent.GetStatedWithdrawal(agent)
 
 			agentScore := agent.GetTrueScore()
-			agent.StateWithdrawalToTeam()
 			// Update audit result for this agent
 			team.TeamAoA.SetWithdrawalAuditResult(agentID, agentScore, agentActualWithdrawal, agentStatedWithdrawal, team.GetCommonPool())
 			agent.SetTrueScore(agentScore + agentActualWithdrawal)
@@ -101,6 +100,21 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 			//  Different to the contribution phase!
 			team.SetCommonPool(currentPool - agentActualWithdrawal)
 			fmt.Printf("[server] Agent %v withdrew %v. Remaining pool: %v\n", agentID, agentActualWithdrawal, team.GetCommonPool())
+		}
+
+		stateWithdrawOrder := make([]uuid.UUID, len(team.Agents))
+		copy(stateWithdrawOrder, team.Agents)
+		// Shuffle the order of agents to broadcast withdrawal amounts
+		rand.Shuffle(len(stateWithdrawOrder), func(i, j int) {
+			stateWithdrawOrder[i], stateWithdrawOrder[j] = stateWithdrawOrder[j], stateWithdrawOrder[i]
+		})
+
+		for _, agentId := range stateWithdrawOrder {
+			agent := cs.GetAgentMap()[agentId]
+			if agent.GetTeamID() == uuid.Nil || cs.IsAgentDead(agentId) {
+				continue
+			}
+			agent.StateWithdrawalToTeam()
 		}
 
 		// Initiate Withdrawal Audit vote
