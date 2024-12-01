@@ -46,9 +46,8 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 			agentActualContribution := agent.GetActualContribution(agent)
 			agentContributionsTotal += agentActualContribution
 			agentStatedContribution := agent.GetStatedContribution(agent)
-			agentExpectedContribution := team.TeamAoA.GetExpectedContribution(agentID, agent.GetTrueScore())
 
-			cs.StateContributionToTeam(agentID, agentStatedContribution, agentExpectedContribution)
+			agent.StateContributionToTeam()
 			agentScore := agent.GetTrueScore()
 			// Update audit result for this agent
 			team.TeamAoA.SetContributionAuditResult(agentID, agentScore, agentActualContribution, agentStatedContribution)
@@ -91,10 +90,9 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 				agentActualWithdrawal = currentPool // Ensure withdrawal does not exceed available pool
 			}
 			agentStatedWithdrawal := agent.GetStatedWithdrawal(agent)
-			agentExpectedWithdrawal := team.TeamAoA.GetExpectedWithdrawal(agentID, agent.GetTrueScore(), currentPool)
 
 			agentScore := agent.GetTrueScore()
-			cs.StateWithdrawalToTeam(agentID, agentStatedWithdrawal, agentExpectedWithdrawal)
+			agent.StateWithdrawalToTeam()
 			// Update audit result for this agent
 			team.TeamAoA.SetWithdrawalAuditResult(agentID, agentScore, agentActualWithdrawal, agentStatedWithdrawal, team.GetCommonPool())
 			agent.SetTrueScore(agentScore + agentActualWithdrawal)
@@ -496,18 +494,4 @@ func generateScore() int {
 		score += rand.Intn(6) + 1
 	}
 	return score
-}
-
-func (cs *EnvironmentServer) StateContributionToTeam(senderID uuid.UUID, agentStatedContribution int, agentExpectedContribution int) {
-	sender := cs.GetAgentMap()[senderID]
-	message := sender.CreateContributionMessage(agentStatedContribution, agentExpectedContribution)
-
-	sender.BroadcastSyncMessageToTeam(message)
-}
-
-func (cs *EnvironmentServer) StateWithdrawalToTeam(senderID uuid.UUID, agentStatedWithdrawal int, agentExpectedWithdrawal int) {
-	sender := cs.GetAgentMap()[senderID]
-	message := sender.CreateWithdrawalMessage(agentStatedWithdrawal, agentExpectedWithdrawal)
-
-	sender.BroadcastSyncMessageToTeam(message)
 }

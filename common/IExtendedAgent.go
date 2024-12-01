@@ -45,6 +45,8 @@ type IExtendedAgent interface {
 	HandleWithdrawalMessage(msg *WithdrawalMessage)
 	BroadcastSyncMessageToTeam(msg message.IMessage[IExtendedAgent])
 	HandleContributionMessage(msg *ContributionMessage)
+	StateContributionToTeam()
+	StateWithdrawalToTeam()
 
 	// Info
 	GetExposedInfo() ExposedAgentInfo
