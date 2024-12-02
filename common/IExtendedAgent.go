@@ -5,6 +5,8 @@ import (
 
 	"github.com/MattSScott/basePlatformSOMAS/v2/pkg/agent"
 	"github.com/google/uuid"
+
+	"github.com/MattSScott/basePlatformSOMAS/v2/pkg/message"
 )
 
 type IExtendedAgent interface {
@@ -14,6 +16,7 @@ type IExtendedAgent interface {
 	GetTeamID() uuid.UUID
 	GetLastTeamID() uuid.UUID
 	GetTrueScore() int
+	GetTeamRanking() []uuid.UUID
 
 	// Functions that involve strategic decisions
 	StartTeamForming(instance IExtendedAgent, agentInfoList []ExposedAgentInfo)
@@ -28,6 +31,7 @@ type IExtendedAgent interface {
 	SetTrueScore(score int)
 	SetAgentContributionAuditResult(agentID uuid.UUID, result bool)
 	SetAgentWithdrawalAuditResult(agentID uuid.UUID, result bool)
+	SetTeamRanking(teamRanking []uuid.UUID)
 	DecideStick()
 	DecideRollAgain()
 
@@ -37,15 +41,23 @@ type IExtendedAgent interface {
 	StickOrAgain() bool
 	DecideContribution() int
 	DecideWithdrawal() int
+	VoteOnAgentEntry(candidateID uuid.UUID) bool
+	StickOrAgainFor(agentId uuid.UUID, accumulatedScore int, prevRoll int) int
 
 	// Messaging functions
 	HandleTeamFormationMessage(msg *TeamFormationMessage)
 	HandleScoreReportMessage(msg *ScoreReportMessage)
 	HandleWithdrawalMessage(msg *WithdrawalMessage)
+	BroadcastSyncMessageToTeam(msg message.IMessage[IExtendedAgent])
 	HandleContributionMessage(msg *ContributionMessage)
+	StateContributionToTeam()
+	StateWithdrawalToTeam()
 
 	// Info
 	GetExposedInfo() ExposedAgentInfo
+	CreateScoreReportMessage() *ScoreReportMessage
+	CreateContributionMessage(statedAmount int) *ContributionMessage
+	CreateWithdrawalMessage(statedAmount int) *WithdrawalMessage
 	LogSelfInfo()
 	GetAoARanking() []int
 	SetAoARanking(Preferences []int)
