@@ -95,18 +95,18 @@ func (mi *ExtendedAgent) StartRollingDice(instance common.IExtendedAgent) {
 	// loop until not stick
 	for !willStick {
 		// debug add score directly
-		currentScore := Debug_RollDice()
+		currentScore := Roll3Dice()
 
 		// check if currentScore is higher than lastScore
 		if currentScore > mi.lastScore {
 			turnScore += currentScore
 			mi.lastScore = currentScore
-			willStick = instance.StickOrAgain()
+			willStick = instance.StickOrAgain(turnScore, currentScore)
 			if willStick {
-				mi.DecideStick()
+				mi.DecideStick() //used just for debugging 
 				break
 			}
-			mi.DecideRollAgain()
+			mi.DecideRollAgain() //used just for debugging 
 		} else {
 			// burst, lose all turn score
 			if mi.verboseLevel > 4 {
@@ -128,12 +128,11 @@ func (mi *ExtendedAgent) StartRollingDice(instance common.IExtendedAgent) {
 }
 
 // stick or again
-func (mi *ExtendedAgent) StickOrAgain() bool {
+func (mi *ExtendedAgent) StickOrAgain(accumulatedScore int, prevRoll int) bool {
 	// if mi.verboseLevel > 8 {
 	// 	fmt.Printf("%s is deciding to stick or again\n", mi.GetID())
 	// }
-	decision := Debug_StickOrAgainJudgement()
-	return decision
+	return rand.Intn(2) == 0
 }
 
 // decide to stick
@@ -369,7 +368,7 @@ func (mi *ExtendedAgent) CreateWithdrawalMessage(statedAmount int) *common.Withd
 
 // ----------------------- Debug functions -----------------------
 
-func Debug_RollDice() int {
+func Roll3Dice() int {
 	// row 3d6
 	total := 0
 	for i := 0; i < 3; i++ {
@@ -378,10 +377,10 @@ func Debug_RollDice() int {
 	return total
 }
 
-func Debug_StickOrAgainJudgement() bool {
-	// 50% chance to stick
-	return rand.Intn(2) == 0
-}
+// func Debug_StickOrAgainJudgement() bool {
+// 	// 50% chance to stick
+// 	return rand.Intn(2) == 0
+// }
 
 // ----------------------- Team forming functions -----------------------
 func (mi *ExtendedAgent) StartTeamForming(instance common.IExtendedAgent, agentInfoList []common.ExposedAgentInfo) {
