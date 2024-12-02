@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
-	gameRecorder "SOMAS_Extended/gameRecorder"
+	gameRecorder "github.com/ADimoska/SOMASExtended/gameRecorder"
 
 	common "github.com/ADimoska/SOMASExtended/common"
 

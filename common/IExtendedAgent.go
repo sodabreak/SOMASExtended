@@ -1,7 +1,7 @@
 package common
 
 import (
-	gameRecorder "SOMAS_Extended/gameRecorder"
+	gameRecorder "github.com/ADimoska/SOMASExtended/gameRecorder"
 
 	"github.com/MattSScott/basePlatformSOMAS/v2/pkg/agent"
 	"github.com/google/uuid"

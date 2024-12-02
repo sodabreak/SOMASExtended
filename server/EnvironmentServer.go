@@ -1,11 +1,12 @@
 package environmentServer
 
 import (
-	gameRecorder "SOMAS_Extended/gameRecorder"
 	"fmt"
 	"math/rand"
 	"sync"
 	"time"
+
+	gameRecorder "github.com/ADimoska/SOMASExtended/gameRecorder"
 
 	"github.com/google/uuid"
 
@@ -159,9 +160,9 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 	// check if threshold turn
 	if cs.turn%cs.thresholdTurns == 0 && cs.turn > 1 {
 		for _, agent := range cs.GetAgentMap() {
-			cs.KillAgentBelowThreshold(agent.GetID())
+			cs.killAgentBelowThreshold(agent.GetID())
 		}
-		cs.CreateNewRoundScoreThreshold()
+		cs.createNewRoundScoreThreshold()
 	}
 
 	// record data
@@ -245,10 +246,16 @@ func (cs *EnvironmentServer) RunEndOfIteration(int) {
 	// }
 }
 
-// custom override
+// custom override (what why this is called later then start iteration...)
 func (cs *EnvironmentServer) Start() {
 	// steal method from package...
 	cs.BaseServer.Start()
+}
+
+// custom init that gets called earlier
+func (cs *EnvironmentServer) Init(turnsForThreshold int) {
+	cs.DataRecorder = gameRecorder.CreateRecorder()
+	cs.thresholdTurns = turnsForThreshold
 }
 
 func (cs *EnvironmentServer) reviveDeadAgents() {
@@ -260,50 +267,6 @@ func (cs *EnvironmentServer) reviveDeadAgents() {
 
 	// Clear the slice
 	cs.deadAgents = cs.deadAgents[:0]
-}
-
-// constructor
-func MakeEnvServer(numAgent int, iterations int, turns int, thresholdTurns int, maxDuration time.Duration, maxThread int, agentConfig agents.AgentConfig) *EnvironmentServer {
-	serv := &EnvironmentServer{
-		BaseServer: server.CreateBaseServer[common.IExtendedAgent](iterations, turns, maxDuration, maxThread),
-		teams:      make(map[uuid.UUID]*common.Team),
-	}
-	serv.thresholdTurns = thresholdTurns
-	serv.SetGameRunner(serv)
-
-	// create agents
-	// example: Base Agent & MI_256 from team 4
-
-	// dummy agents (base agent)
-	for i := 0; i < numAgent; i++ {
-		base_agent := agents.GetBaseAgents(serv, agentConfig)
-		serv.AddAgent(base_agent)
-
-		// TEAM 1
-		// TEAM 2
-		// TEAM 3
-		// TEAM 4
-		// example: MI_256 from team 4
-		team4_agent := agents.Team4_CreateAgent(serv, agentConfig)
-		serv.AddAgent(team4_agent)
-		// TEAM 5
-		// TEAM 6
-	}
-
-	serv.aoaMenu = make([]common.IArticlesOfAssociation, 4)
-
-	// for now, menu just has 4 choices of AoA. TBC.
-	serv.aoaMenu[0] = common.CreateFixedAoA()
-
-	serv.aoaMenu[1] = common.CreateFixedAoA()
-
-	serv.aoaMenu[2] = common.CreateFixedAoA()
-
-	serv.aoaMenu[3] = common.CreateFixedAoA()
-
-	serv.DataRecorder = gameRecorder.CreateRecorder()
-
-	return serv
 }
 
 // debug log printing
@@ -612,39 +575,7 @@ func (cs *EnvironmentServer) RecordTurnInfo() {
 	}
 
 	teamRecords := []gameRecorder.TeamRecord{}
-	for _, team := range cs.teams {
-		newTeamRecord := gameRecorder.NewTeamRecord(team.TeamID)
-		teamRecords = append(teamRecords, newTeamRecord)
-	}
-
-	cs.DataRecorder.RecordNewTurn(agentRecords, teamRecords)
-}
-
-// reset all agents (preserve memory but clears scores)
-func (cs *EnvironmentServer) ResetAgents() {
-	for _, agent := range cs.GetAgentMap() {
-		agent.SetTrueScore(0)
-	}
-}
-
-func (cs *EnvironmentServer) RecordTurnInfo() {
-
-	// agent information
-	agentRecords := []gameRecorder.AgentRecord{}
-	for _, agent := range cs.GetAgentMap() {
-		newAgentRecord := agent.RecordAgentStatus()
-		newAgentRecord.IsAlive = true
-		agentRecords = append(agentRecords, newAgentRecord)
-	}
-
-	for _, agent := range cs.deadAgents {
-		newAgentRecord := agent.RecordAgentStatus()
-		newAgentRecord.IsAlive = false
-		agentRecords = append(agentRecords, newAgentRecord)
-	}
-
-	teamRecords := []gameRecorder.TeamRecord{}
-	for _, team := range cs.teams {
+	for _, team := range cs.Teams {
 		newTeamRecord := gameRecorder.NewTeamRecord(team.TeamID)
 		teamRecords = append(teamRecords, newTeamRecord)
 	}
