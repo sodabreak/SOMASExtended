@@ -2,8 +2,11 @@ package common
 
 import (
 	"container/list"
+	"errors"
 	"github.com/google/uuid"
+	"math/rand"
 	"sort"
+	"log"
 )
 
 type Team1AoA struct {
@@ -95,6 +98,105 @@ func (t *Team1AoA) GetWithdrawalOrder(agentIDs []uuid.UUID) []uuid.UUID {
 		return t.ranking[agentIDs[i]] > t.ranking[agentIDs[j]]
 	})
 	return agentIDs
+}
+
+// WeightedRandomSelection selects one agent based on weights derived from ranks.
+func (t *Team1AoA) WeightedRandomSelection(agentIds []uuid.UUID) uuid.UUID {
+    if len(agentIds) == 0 {
+        log.Fatal("No agents to select from")
+    }
+
+    totalWeight := 0
+    for _, agentId := range agentIds {
+        totalWeight += t.ranking[agentId]
+    }
+    if totalWeight == 0 {
+        log.Fatal("All agents have 0 weight")
+    }
+    
+    randomNumber := rand.Intn(totalWeight) + 1
+    cumulativeWeight := 0
+    for _, agentId := range agentIds {
+        cumulativeWeight += t.ranking[agentId]
+        if cumulativeWeight >= randomNumber {
+            return agentId
+        }
+    }
+    
+    log.Fatal("Failed to select an agent")
+    return uuid.Nil // This line will never be reached due to log.Fatal
+}
+
+// SelectNChairs selects n distinct agents to be chairs, with probability of selection based on rank.
+func (t *Team1AoA) SelectNChairs(agentIds []uuid.UUID, n int) []uuid.UUID {
+    if len(agentIds) < n {
+        log.Fatal("not enough agents to select from")
+    }
+
+    selectedChairs := make([]uuid.UUID, 0, n)
+    remainingAgents := make([]uuid.UUID, len(agentIds))
+    copy(remainingAgents, agentIds)
+
+    for i := 0; i < n; i++ {
+        agent := t.WeightedRandomSelection(remainingAgents)
+        selectedChairs = append(selectedChairs, agent)
+
+        // Remove the selected agent from remainingAgents
+        // Find the index of the selected agent
+        index := -1
+        for j, id := range remainingAgents {
+            if id == agent {
+                index = j
+                break
+            }
+        }
+
+        if index == -1 {
+            log.Fatal("selected agent not found in remainingAgents")
+        }
+
+        // Remove the agent by swapping with the last element and truncating the slice
+        remainingAgents[index] = remainingAgents[len(remainingAgents)-1]
+        remainingAgents = remainingAgents[:len(remainingAgents)-1]
+    }
+
+    return selectedChairs
+}
+
+// TODO: move to AGENT
+func (a *ExtendedAgent) ChairCountVotes(ENUM_THINGS_TO_VOTE_ON iota) T {
+	switch (ENUM_THINGS_TO_VOTE_ON){
+		case NEW_AGENT_RANK_PREFS:
+			votes := 0
+			for _, agent := range t.Agents {
+				votes += agent.GetAgentRankPreferences()
+			return votes
+	}
+}
+}
+
+func (t *Team1AoA) RunPostContributionAoaLogic(team *Team) {
+	// Choose 2 chairs based on rank
+	// call function for agents to vote on ranks
+	// If the chairs decision do not match, then reduce rank by 1 of their score and give to common pool
+	// Then repeat until two agents agree
+
+	// Choose 2 chairs based on rank
+	chairs := t.SelectNChairs(team.Agents, 2)
+
+	listOfmaps := make([]map[uuid.UUID]int, 0)
+	
+
+	chair_1.ChairCountVotes(NEW_AGENT_RANK_PREFS)
+
+	// get the pointers to chairs and call countVotes function to get the result
+	
+	
+
+
+
+	return
+
 }
 
 func CreateTeam1AoA(team *Team) IArticlesOfAssociation {

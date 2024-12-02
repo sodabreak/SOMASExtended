@@ -556,6 +556,7 @@ func (mi *ExtendedAgent) SetTeamRanking(teamRanking []uuid.UUID) {
 	mi.TeamRanking = teamRanking
 }
 
+
 // ----------------------- Data Recording Functions -----------------------
 func (mi *ExtendedAgent) RecordAgentStatus() gameRecorder.AgentRecord {
 	record := gameRecorder.NewAgentRecord(

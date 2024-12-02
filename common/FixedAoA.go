@@ -86,6 +86,10 @@ func (t *FixedAoA) GetWithdrawalOrder(agentIDs []uuid.UUID) []uuid.UUID {
 	return shuffledAgents
 }
 
+func (t *FixedAoA) RunPostContributionAoaLogic(team *Team) {}
+
+
+	
 func CreateFixedAoA(duration int) IArticlesOfAssociation {
 	auditRecord := NewAuditRecord(duration)
 	return &FixedAoA{
