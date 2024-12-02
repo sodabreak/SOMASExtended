@@ -48,7 +48,7 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 	cs.turn = j
 
 	cs.teamsMutex.Lock()
-	defer cs.teamsMutex.Unlock()
+	// defer cs.teamsMutex.Unlock()
 
 	for _, team := range cs.Teams {
 		fmt.Println("\nRunning turn for team ", team.TeamID)
@@ -160,13 +160,18 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 	// check if threshold turn
 	if cs.turn%cs.thresholdTurns == 0 && cs.turn > 1 {
 		for _, agent := range cs.GetAgentMap() {
-			cs.killAgentBelowThreshold(agent.GetID())
+			cs.teamsMutex.Unlock()
+			if !cs.IsAgentDead(agent.GetID()) {
+				cs.killAgentBelowThreshold(agent.GetID())
+			}
+			cs.teamsMutex.Lock()
 		}
 		cs.createNewRoundScoreThreshold()
 	}
 
 	// record data
 	cs.RecordTurnInfo()
+	cs.teamsMutex.Unlock()
 }
 
 func (cs *EnvironmentServer) RunStartOfIteration(iteration int) {
@@ -555,6 +560,7 @@ func generateScore() int {
 func (cs *EnvironmentServer) ResetAgents() {
 	for _, agent := range cs.GetAgentMap() {
 		agent.SetTrueScore(0)
+		agent.SetTeamID(uuid.UUID{})
 	}
 }
 
