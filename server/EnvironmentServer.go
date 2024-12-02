@@ -33,6 +33,10 @@ type EnvironmentServer struct {
 	thresholdTurns int
 }
 
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
 func (cs *EnvironmentServer) RunTurn(i, j int) {
 	log.Printf("\n\nIteration %v, Turn %v, current agent count: %v\n", i, j, len(cs.GetAgentMap()))
 
@@ -197,34 +201,71 @@ func (cs *EnvironmentServer) RunStartOfIteration(iteration int) {
 	cs.allocateAoAs()
 }
 
-// Allocate AoA based on team votes;
-// for each member in team, count vote for AoA and then take majority (?) vote
-// assign majority vote back to team struct (team.Strategy)
+// Allocate AoA based on team votes using Borda Count method;
+// Each team member can provide up to 6 top preferences for AoA.
+// The system counts the weighted votes for each AoA and assigns the preferred AoA to the team.
+// In the event of a tie, a random AoA among the tied ones is selected.
 func (cs *EnvironmentServer) allocateAoAs() {
 	// Iterate over each team
 	for _, team := range cs.Teams {
-		// ranking cache for each team.
-		var voteSum = []int{0, 0, 0, 0}
+		// Initialize a slice to hold weighted vote counts for AoAs 1 through 6.
+		// Index 0 is unused for simplicity.
+		voteSum := make([]int, 7) // voteSum[1] to voteSum[6]
+
+		// Iterate over each agent in the team
 		for _, agent := range team.Agents {
+			// Skip dead agents
 			if cs.IsAgentDead(agent) {
 				continue
 			}
-			for aoa, vote := range cs.GetAgentMap()[agent].GetAoARanking() {
-				voteSum[aoa] += vote
+
+			// Retrieve the agent's AoA rankings (up to 6 preferences)
+			aoaRanking := cs.GetAgentMap()[agent].GetAoARanking()
+
+			// Assign weights based on position
+			// First preference gets 6 points, second 5, ..., sixth 1
+			for position, aoa := range aoaRanking {
+				weight := 6 - position
+				if weight < 1 {
+					weight = 1 // Minimum weight
+				}
+
+				// Ensure the AoA is within the valid range (1-6)
+				if aoa >= 1 && aoa <= 6 {
+					voteSum[aoa] += weight
+				}
 			}
 		}
 
-		// Determine the preferred AoA based on the majority vote
-		currentMax := 0
-		preference := 0
-		for aoa, voteCount := range voteSum {
-			if voteCount > currentMax {
-				currentMax = voteCount
-				preference = aoa
+		// Determine the maximum vote count
+		currentMax := -1
+		for aoa := 1; aoa <= 6; aoa++ {
+			if voteSum[aoa] > currentMax {
+				currentMax = voteSum[aoa]
 			}
 		}
 
-		// Update the team's strategy
+		// Collect all AoAs that have the maximum vote count
+		var tiedAoAs []int
+		for aoa := 1; aoa <= 6; aoa++ {
+			if voteSum[aoa] == currentMax {
+				tiedAoAs = append(tiedAoAs, aoa)
+			}
+		}
+
+		// Select a random AoA among the tied AoAs if there's a tie
+		var preference int
+		if len(tiedAoAs) == 1 {
+			preference = tiedAoAs[0]
+		} else if len(tiedAoAs) > 1 {
+			randomIndex := rand.Intn(len(tiedAoAs))
+			preference = tiedAoAs[randomIndex]
+		} else {
+			// If no votes were cast, assign a default AoA
+			preference = 0
+		}
+
+		// Assign the preferred AoA to the team's strategy
 		switch preference {
 		case 1:
 			team.TeamAoA = common.CreateTeam1AoA(team)
@@ -239,10 +280,13 @@ func (cs *EnvironmentServer) allocateAoAs() {
 		case 6:
 			team.TeamAoA = common.CreateFixedAoA(1)
 		default:
+			// If no valid preference is found, assign a default AoA
 			team.TeamAoA = common.CreateFixedAoA(1)
 		}
 
+		// Update the team's strategy in the EnvironmentServer
 		cs.Teams[team.TeamID] = team
+		log.Println("Team", team.TeamID, "has been assigned AoA", preference)
 	}
 }
 
