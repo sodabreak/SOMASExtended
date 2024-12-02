@@ -103,10 +103,10 @@ func (mi *ExtendedAgent) StartRollingDice(instance common.IExtendedAgent) {
 			mi.lastScore = currentScore
 			willStick = instance.StickOrAgain(turnScore, currentScore)
 			if willStick {
-				mi.DecideStick() //used just for debugging 
+				mi.DecideStick() //used just for debugging
 				break
 			}
-			mi.DecideRollAgain() //used just for debugging 
+			mi.DecideRollAgain() //used just for debugging
 		} else {
 			// burst, lose all turn score
 			if mi.verboseLevel > 4 {
