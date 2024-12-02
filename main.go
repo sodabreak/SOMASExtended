@@ -27,7 +27,7 @@ func main() {
 		BaseServer: baseServer.CreateBaseServer[common.IExtendedAgent](
 			2,                    //  iterations
 			12,                   //  turns per iteration
-			200*time.Millisecond, //  max duration
+			100*time.Millisecond, //  max duration
 			10),                  //  message bandwidth
 		Teams: make(map[uuid.UUID]*common.Team),
 	}

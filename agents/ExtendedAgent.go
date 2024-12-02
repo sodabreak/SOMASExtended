@@ -174,6 +174,10 @@ func (mi *ExtendedAgent) GetActualContribution(instance common.IExtendedAgent) i
 }
 
 func (mi *ExtendedAgent) DecideContribution() int {
+	// first check if the agent has a team
+	if !mi.HasTeam() {
+		return 0
+	}
 	// MVP: contribute exactly as defined in AoA
 	if mi.server.GetTeam(mi.GetID()).TeamAoA != nil {
 		aoaExpectedContribution := mi.server.GetTeam(mi.GetID()).TeamAoA.GetExpectedContribution(mi.GetID(), mi.GetTrueScore())
@@ -195,6 +199,10 @@ func (mi *ExtendedAgent) DecideContribution() int {
 // TODO: the value returned by this should be broadcasted to the team via a message
 // This function MUST return the same value when called multiple times in the same turn
 func (mi *ExtendedAgent) GetStatedContribution(instance common.IExtendedAgent) int {
+	// first check if the agent has a team
+	if !mi.HasTeam() {
+		return 0
+	}
 	// Hardcoded stated
 	statedContribution := instance.GetActualContribution(instance)
 	return statedContribution
@@ -202,6 +210,10 @@ func (mi *ExtendedAgent) GetStatedContribution(instance common.IExtendedAgent) i
 
 // make withdrawal from common pool
 func (mi *ExtendedAgent) GetActualWithdrawal(instance common.IExtendedAgent) int {
+	// first check if the agent has a team
+	if !mi.HasTeam() {
+		return 0
+	}
 	currentPool := mi.server.GetTeam(mi.GetID()).GetCommonPool()
 	withdrawal := instance.DecideWithdrawal()
 	fmt.Printf("%s is withdrawing %d from the common pool of size %d\n", mi.GetID(), withdrawal, currentPool)
@@ -211,12 +223,20 @@ func (mi *ExtendedAgent) GetActualWithdrawal(instance common.IExtendedAgent) int
 // The value returned by this should be broadcasted to the team via a message
 // This function MUST return the same value when called multiple times in the same turn
 func (mi *ExtendedAgent) GetStatedWithdrawal(instance common.IExtendedAgent) int {
+	// first check if the agent has a team
+	if !mi.HasTeam() {
+		return 0
+	}
 	// Currently, assume stated withdrawal matches actual withdrawal
 	return instance.DecideWithdrawal()
 }
 
 // Decide the withdrawal amount based on AoA and current pool size
 func (mi *ExtendedAgent) DecideWithdrawal() int {
+	// first check if the agent has a team
+	if !mi.HasTeam() {
+		return 0
+	}
 	if mi.server.GetTeam(mi.GetID()).TeamAoA != nil {
 		// double check if score in agent is sufficient (this should be handled by AoA though)
 		commonPool := mi.server.GetTeam(mi.GetID()).GetCommonPool()
@@ -514,10 +534,10 @@ func (mi *ExtendedAgent) RecordAgentStatus() gameRecorder.AgentRecord {
 		mi.GetID(),
 		mi.trueSomasTeamID, // mi.GetTrueSomasTeamID()
 		mi.GetTrueScore(),
-		0, // mi.GetActualContribution(mi),
-		0, // mi.GetStatedContribution(mi),
-		0, // mi.GetActualWithdrawal(mi),
-		0, // mi.GetStatedWithdrawal(mi),
+		mi.GetActualContribution(mi),
+		mi.GetStatedContribution(mi),
+		mi.GetActualWithdrawal(mi),
+		mi.GetStatedWithdrawal(mi),
 		mi.GetTeamID(),
 	)
 	return record

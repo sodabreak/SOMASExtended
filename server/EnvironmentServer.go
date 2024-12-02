@@ -350,25 +350,31 @@ func (cs *EnvironmentServer) killAgent(agentID uuid.UUID) {
 
 	// Remove the agent from the team
 	if teamID := agent.GetTeamID(); teamID != uuid.Nil {
-		cs.teamsMutex.Lock()
+		// cs.teamsMutex.Lock()
+		// defer cs.teamsMutex.Unlock()
+
 		team := cs.Teams[teamID]
-		for i, id := range team.Agents {
-			if id == agentID {
-				// Remove agent from the team
-				team.Agents = append(team.Agents[:i], team.Agents[i+1:]...)
-				cs.Teams[teamID] = team
-				// Set the team of the agent to Nil !!!
-				agent.SetTeamID(uuid.Nil)
-				break
+		// check if team exists (patch fix - TODO check the root of the error)
+		if team == nil {
+			fmt.Printf("[server] Team %v does not exist\n", teamID)
+		} else {
+			for i, id := range team.Agents {
+				if id == agentID {
+					// Remove agent from the team
+					team.Agents = append(team.Agents[:i], team.Agents[i+1:]...)
+					cs.Teams[teamID] = team
+					// Set the team of the agent to Nil
+					agent.SetTeamID(uuid.Nil)
+					break
+				}
 			}
 		}
-		cs.teamsMutex.Unlock()
-
-		// Add the agent to the dead agent list and remove it from the server's agent map
-		cs.deadAgents = append(cs.deadAgents, agent)
-		cs.RemoveAgent(agent)
-		fmt.Printf("[server] Agent %v killed\n", agentID)
 	}
+
+	// Add the agent to the dead agent list and remove it from the server's agent map
+	cs.deadAgents = append(cs.deadAgents, agent)
+	cs.RemoveAgent(agent)
+	fmt.Printf("[server] Agent %v killed\n", agentID)
 }
 
 // is agent dead
@@ -555,6 +561,7 @@ func generateScore() int {
 func (cs *EnvironmentServer) ResetAgents() {
 	for _, agent := range cs.GetAgentMap() {
 		agent.SetTrueScore(0)
+		agent.SetTeamID(uuid.Nil)
 	}
 }
 
