@@ -29,10 +29,17 @@ type EnvironmentServer struct {
 
 	// data recorder
 	DataRecorder *gameRecorder.ServerDataRecorder
+
+	// server internal state
+	turn           int
+	iteration      int
+	thresholdTurns int
 }
 
 func (cs *EnvironmentServer) RunTurn(i, j int) {
 	fmt.Printf("\n\nIteration %v, Turn %v, current agent count: %v\n", i, j, len(cs.GetAgentMap()))
+
+	cs.turn = j
 
 	cs.teamsMutex.Lock()
 	defer cs.teamsMutex.Unlock()
@@ -126,12 +133,22 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 
 	// TODO: Reallocate agents who left their teams during the turn
 
+	// check if threshold turn
+	if cs.turn%cs.thresholdTurns == 0 && cs.turn > 1 {
+		for _, agent := range cs.GetAgentMap() {
+			cs.KillAgentBelowThreshold(agent.GetID())
+		}
+		cs.CreateNewRoundScoreThreshold()
+	}
+
 	// record data
 	cs.RecordTurnInfo()
 }
 
 func (cs *EnvironmentServer) RunStartOfIteration(iteration int) {
 	fmt.Printf("--------Start of iteration %v---------\n", iteration)
+
+	cs.iteration = iteration
 
 	// record data
 	cs.DataRecorder.RecordNewIteration()
@@ -141,6 +158,9 @@ func (cs *EnvironmentServer) RunStartOfIteration(iteration int) {
 
 	// Revive all dead agents
 	cs.ReviveDeadAgents()
+
+	// reset all agents (make sure their score starts at 0)
+	cs.ResetAgents()
 
 	// start team forming
 	cs.StartAgentTeamForming()
@@ -183,9 +203,9 @@ func (cs *EnvironmentServer) AllocateAoAs() {
 }
 
 func (cs *EnvironmentServer) RunEndOfIteration(int) {
-	for _, agent := range cs.GetAgentMap() {
-		cs.KillAgentBelowThreshold(agent.GetID())
-	}
+	// for _, agent := range cs.GetAgentMap() {
+	// 	cs.KillAgentBelowThreshold(agent.GetID())
+	// }
 }
 
 // custom override
@@ -206,11 +226,12 @@ func (cs *EnvironmentServer) ReviveDeadAgents() {
 }
 
 // constructor
-func MakeEnvServer(numAgent int, iterations int, turns int, maxDuration time.Duration, maxThread int, agentConfig agents.AgentConfig) *EnvironmentServer {
+func MakeEnvServer(numAgent int, iterations int, turns int, thresholdTurns int, maxDuration time.Duration, maxThread int, agentConfig agents.AgentConfig) *EnvironmentServer {
 	serv := &EnvironmentServer{
 		BaseServer: server.CreateBaseServer[common.IExtendedAgent](iterations, turns, maxDuration, maxThread),
 		teams:      make(map[uuid.UUID]*common.Team),
 	}
+	serv.thresholdTurns = thresholdTurns
 	serv.SetGameRunner(serv)
 
 	// create agents
@@ -262,6 +283,7 @@ func (cs *EnvironmentServer) LogAgentStatus() {
 
 // pretty logging to show all team status
 func (cs *EnvironmentServer) LogTeamStatus() {
+	fmt.Println("\n------------- [server] Team status -------------")
 	for _, team := range cs.teams {
 		fmt.Printf("Team %v: %v\n", team.TeamID, team.Agents)
 	}
@@ -357,6 +379,9 @@ func (cs *EnvironmentServer) StartAgentTeamForming() {
 	for _, agent := range cs.GetAgentMap() {
 		agent.StartTeamForming(agent, agentInfo)
 	}
+
+	// print team status
+	cs.LogTeamStatus()
 }
 
 func (cs *EnvironmentServer) CreateTeam() {
@@ -444,21 +469,34 @@ func (cs *EnvironmentServer) GetTeam(agentID uuid.UUID) *common.Team {
 	return cs.teams[cs.GetAgentMap()[agentID].GetTeamID()]
 }
 
+// reset all agents (preserve memory but clears scores)
+func (cs *EnvironmentServer) ResetAgents() {
+	for _, agent := range cs.GetAgentMap() {
+		agent.SetTrueScore(0)
+	}
+}
+
 func (cs *EnvironmentServer) RecordTurnInfo() {
 
 	// agent information
 	agentRecords := []gameRecorder.AgentRecord{}
 	for _, agent := range cs.GetAgentMap() {
 		newAgentRecord := agent.RecordAgentStatus()
+		newAgentRecord.IsAlive = true
 		agentRecords = append(agentRecords, newAgentRecord)
 	}
 
 	for _, agent := range cs.deadAgents {
 		newAgentRecord := agent.RecordAgentStatus()
+		newAgentRecord.IsAlive = false
 		agentRecords = append(agentRecords, newAgentRecord)
 	}
 
 	teamRecords := []gameRecorder.TeamRecord{}
+	for _, team := range cs.teams {
+		newTeamRecord := gameRecorder.NewTeamRecord(team.TeamID)
+		teamRecords = append(teamRecords, newTeamRecord)
+	}
 
 	cs.DataRecorder.RecordNewTurn(agentRecords, teamRecords)
 }

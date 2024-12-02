@@ -10,6 +10,11 @@ import (
 	"github.com/go-echarts/go-echarts/v2/opts"
 )
 
+// Add this constant at the top of the file
+const (
+	deathSymbol = "path://M 8 0 L 16 8 L 8 16 L 0 8 Z M 4 4 L 4 6 L 6 6 L 6 4 Z M 10 4 L 10 6 L 12 6 L 12 4 Z M 4 10 Q 8 13 12 10"
+)
+
 // CreatePlaybackHTML generates visualizations for the recorded game data
 func CreatePlaybackHTML(recorder *ServerDataRecorder) {
 	createScorePlots(recorder)
@@ -137,23 +142,36 @@ func createScorePlots(recorder *ServerDataRecorder) {
 		// When adding series, include team-based colors and mark dead agents
 		for agentID, scores := range agentScores {
 			// Find when the agent died (if they did)
-			deathMarkers := make([]opts.ScatterData, len(turns))
+			var deathMarker opts.ScatterData
+			var deathTurn int = -1
+
+			// Find the turn where agent died
 			for i, turn := range turns {
 				for _, agent := range turn.AgentRecords {
 					if agent.AgentID.String() == agentID {
 						if !agent.IsAlive {
-							deathMarkers[i] = opts.ScatterData{
-								Value:      scores[i],
-								Symbol:     "circle",
-								SymbolSize: 10,
+							deathTurn = i
+							deathMarker = opts.ScatterData{
+								Value:      []interface{}{xAxis[i], scores[i]},
+								Symbol:     deathSymbol,
+								SymbolSize: 20,
 							}
+							break
 						}
 					}
 				}
+				if deathTurn != -1 {
+					break
+				}
+			}
+
+			// Truncate scores after death
+			if deathTurn != -1 {
+				scores = scores[:deathTurn+1]
 			}
 
 			// Add the series with custom styling
-			line.AddSeries(agentID, generateLineItems(xAxis, scores),
+			line.AddSeries(agentID, generateLineItems(xAxis[:len(scores)], scores),
 				charts.WithLineStyleOpts(opts.LineStyle{
 					Color: teamColors[agentID],
 				}),
@@ -162,10 +180,10 @@ func createScorePlots(recorder *ServerDataRecorder) {
 				}),
 			)
 
-			// Add death markers as a scatter plot overlay
-			if len(deathMarkers) > 0 {
+			// Add death marker as a scatter plot overlay
+			if deathTurn != -1 {
 				scatter := charts.NewScatter()
-				scatter.AddSeries(agentID+" Death", deathMarkers,
+				scatter.AddSeries(agentID+" Death", []opts.ScatterData{deathMarker},
 					charts.WithItemStyleOpts(opts.ItemStyle{
 						Color: "black",
 					}),
@@ -282,7 +300,8 @@ func createContributionPlots(recorder *ServerDataRecorder) {
 			agentID := initialAgent.AgentID.String()
 			actualNet := make([]float64, len(turns))
 			statedNet := make([]float64, len(turns))
-			deathMarkers := make([]opts.ScatterData, len(turns))
+			var deathMarker opts.ScatterData
+			var deathTurn int = -1
 
 			for i, turn := range turns {
 				for _, agent := range turn.AgentRecords {
@@ -291,35 +310,46 @@ func createContributionPlots(recorder *ServerDataRecorder) {
 						statedNet[i] = float64(agent.StatedContribution - agent.StatedWithdrawal)
 
 						if !agent.IsAlive {
-							deathMarkers[i] = opts.ScatterData{
-								Value:      actualNet[i],
-								Symbol:     "circle",
-								SymbolSize: 10,
+							deathTurn = i
+							deathMarker = opts.ScatterData{
+								Value:      []interface{}{xAxis[i], actualNet[i]},
+								Symbol:     deathSymbol,
+								SymbolSize: 20,
 							}
+							break
 						}
 					}
 				}
+				if deathTurn != -1 {
+					break
+				}
+			}
+
+			// Truncate data after death
+			if deathTurn != -1 {
+				actualNet = actualNet[:deathTurn+1]
+				statedNet = statedNet[:deathTurn+1]
 			}
 
 			// Add actual contribution line
-			line.AddSeries(agentID+" (Actual)", generateLineItems(xAxis, actualNet),
+			line.AddSeries(agentID+" (Actual)", generateLineItems(xAxis[:len(actualNet)], actualNet),
 				charts.WithLineStyleOpts(opts.LineStyle{
 					Color: teamColors[agentID],
 				}),
 			)
 
 			// Add stated contribution line (dotted)
-			line.AddSeries(agentID+" (Stated)", generateLineItems(xAxis, statedNet),
+			line.AddSeries(agentID+" (Stated)", generateLineItems(xAxis[:len(statedNet)], statedNet),
 				charts.WithLineStyleOpts(opts.LineStyle{
 					Color: teamColors[agentID],
 					Type:  "dashed",
 				}),
 			)
 
-			// Add death markers
-			if len(deathMarkers) > 0 {
+			// Add death marker
+			if deathTurn != -1 {
 				scatter := charts.NewScatter()
-				scatter.AddSeries(agentID+" Death", deathMarkers,
+				scatter.AddSeries(agentID+" Death", []opts.ScatterData{deathMarker},
 					charts.WithItemStyleOpts(opts.ItemStyle{
 						Color: "black",
 					}),

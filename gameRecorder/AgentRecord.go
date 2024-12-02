@@ -38,8 +38,17 @@ func NewAgentRecord(agentID uuid.UUID, trueSomasTeamID int, score int, contribut
 	}
 }
 
+func NewTeamRecord(teamID uuid.UUID) TeamRecord {
+	return TeamRecord{
+		TeamID: teamID,
+	}
+}
+
 func (ar *AgentRecord) DebugPrint() {
 	// fmt.Printf("Agent ID: %v\n", ar.AgentID)
+	if !ar.IsAlive {
+		fmt.Printf("[DEAD] ")
+	}
 	fmt.Printf("Agent Score: %v\n", ar.Score)
 	// fmt.Printf("Agent Contribution: %v\n", ar.agent.GetActualContribution(ar.agent))
 	// fmt.Printf("Agent Stated Contribution: %v\n", ar.agent.GetStatedContribution(ar.agent))
