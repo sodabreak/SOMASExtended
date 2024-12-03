@@ -13,16 +13,17 @@ import (
 )
 
 type Team1AoA struct {
-	auditResult map[uuid.UUID]*list.List
-	ranking     map[uuid.UUID]int
-	threshold   [5]int
-	agentLQueue map[uuid.UUID]*LeakyQueue
+	auditResult      map[uuid.UUID]*list.List
+	ranking          map[uuid.UUID]int
+	rankBoundary     [5]int
+	agentLQueue      map[uuid.UUID]*LeakyQueue
+	commonPoolWeight float64
 }
 
 // LeakyQueue represents a queue with a fixed capacity.
 type LeakyQueue struct {
 	data     []int
-	sum 	 int
+	sum      int
 	capacity int
 }
 
@@ -33,7 +34,7 @@ func NewLeakyQueue(capacity int) *LeakyQueue {
 	}
 	return &LeakyQueue{
 		data:     make([]int, 0, capacity),
-		sum: 	  0,
+		sum:      0,
 		capacity: capacity,
 	}
 }
@@ -49,11 +50,9 @@ func (q *LeakyQueue) Push(value int) {
 	q.data = append(q.data, value) // Add the new element
 }
 
-func (q *LeakyQueue) Sum() int{
+func (q *LeakyQueue) Sum() int {
 	return q.sum
 }
-
-
 
 func (t *Team1AoA) ResetAuditMap() {
 	t.auditResult = make(map[uuid.UUID]*list.List)
@@ -61,23 +60,42 @@ func (t *Team1AoA) ResetAuditMap() {
 
 // TODO: Add functionality for expected contribution to change based on rank
 func (t *Team1AoA) GetExpectedContribution(agentId uuid.UUID, agentScore int) int {
-	return 1 // For now using threshold as minimum for all ranks, later have per rank minimums? But need to vote what is min?
+	return 1 // For now using boundary as minimum for all ranks, later have per rank minimums? But need to vote what is min?
 }
 
 func (t *Team1AoA) SetContributionAuditResult(agentId uuid.UUID, agentScore int, agentActualContribution int, agentStatedContribution int) {
 	t.auditResult[agentId].PushBack((agentStatedContribution > agentActualContribution))
 
 	// Update The LeakyQueue of agent
-	t.agentLQueue[agentId].Push(agentStatedContribution);
+	t.agentLQueue[agentId].Push(agentStatedContribution)
+}
+
+// For now divide by 10
+func weightFunction(rank float64) float64 {
+	weight := rank / 10.0 // make this
+	return weight
 }
 
 func (t *Team1AoA) GetExpectedWithdrawal(agentId uuid.UUID, agentScore int, commonPool int) int {
-	totalWeightedSum := 0
+	var totalWeightedSum float64
+	totalWeightedSum = 0
 	for _, rank := range t.ranking {
-		totalWeightedSum += rank
+		totalWeightedSum += weightFunction(float64(t.rankBoundary[rank-1]))
 	}
-	expectedWithdrawal := t.ranking[agentId] * (commonPool / (totalWeightedSum + 5)) // Weight 5 for pool?
-	return expectedWithdrawal
+
+	// Retrieve the boundary value for the given agent, adjusted by its ranking
+	agentBoundary := float64(t.rankBoundary[t.ranking[agentId]-1])
+
+	// Compute the weight for the agent based on the boundary
+	agentWeight := weightFunction(agentBoundary)
+
+	// Compute the weighted share of the common pool for the agent
+	poolShare := float64(commonPool) / (totalWeightedSum + t.commonPoolWeight)
+
+	// Calculate the expected withdrawal for the agent
+	expectedWithdrawal := agentWeight * poolShare
+
+	return int(expectedWithdrawal)
 }
 
 func (t *Team1AoA) SetWithdrawalAuditResult(agentId uuid.UUID, agentScore int, agentActualWithdrawal int, agentStatedWithdrawal int, commonPool int) {
@@ -130,67 +148,66 @@ func (t *Team1AoA) GetWithdrawalOrder(agentIDs []uuid.UUID) []uuid.UUID {
 
 // WeightedRandomSelection selects one agent based on weights derived from ranks.
 func (t *Team1AoA) WeightedRandomSelection(agentIds []uuid.UUID) uuid.UUID {
-    if len(agentIds) == 0 {
-        log.Fatal("No agents to select from")
-    }
+	if len(agentIds) == 0 {
+		log.Fatal("No agents to select from")
+	}
 
-    totalWeight := 0
-    for _, agentId := range agentIds {
-        totalWeight += t.ranking[agentId]
-    }
-    if totalWeight == 0 {
-        log.Fatal("All agents have 0 weight")
-    }
-    
-    randomNumber := rand.Intn(totalWeight) + 1
-    cumulativeWeight := 0
-    for _, agentId := range agentIds {
-        cumulativeWeight += t.ranking[agentId]
-        if cumulativeWeight >= randomNumber {
-            return agentId
-        }
-    }
-    
-    log.Fatal("Failed to select an agent")
-    return uuid.Nil // This line will never be reached due to log.Fatal
+	totalWeight := 0
+	for _, agentId := range agentIds {
+		totalWeight += t.ranking[agentId]
+	}
+	if totalWeight == 0 {
+		log.Fatal("All agents have 0 weight")
+	}
+
+	randomNumber := rand.Intn(totalWeight) + 1
+	cumulativeWeight := 0
+	for _, agentId := range agentIds {
+		cumulativeWeight += t.ranking[agentId]
+		if cumulativeWeight >= randomNumber {
+			return agentId
+		}
+	}
+
+	log.Fatal("Failed to select an agent")
+	return uuid.Nil // This line will never be reached due to log.Fatal
 }
 
 // SelectNChairs selects n distinct agents to be chairs, with probability of selection based on rank.
 func (t *Team1AoA) SelectNChairs(agentIds []uuid.UUID, n int) []uuid.UUID {
-    if len(agentIds) < n {
-        log.Fatal("not enough agents to select from")
-    }
+	if len(agentIds) < n {
+		log.Fatal("not enough agents to select from")
+	}
 
-    selectedChairs := make([]uuid.UUID, 0, n)
-    remainingAgents := make([]uuid.UUID, len(agentIds))
-    copy(remainingAgents, agentIds)
+	selectedChairs := make([]uuid.UUID, 0, n)
+	remainingAgents := make([]uuid.UUID, len(agentIds))
+	copy(remainingAgents, agentIds)
 
-    for i := 0; i < n; i++ {
-        agent := t.WeightedRandomSelection(remainingAgents)
-        selectedChairs = append(selectedChairs, agent)
+	for i := 0; i < n; i++ {
+		agent := t.WeightedRandomSelection(remainingAgents)
+		selectedChairs = append(selectedChairs, agent)
 
-        // Remove the selected agent from remainingAgents
-        // Find the index of the selected agent
-        index := -1
-        for j, id := range remainingAgents {
-            if id == agent {
-                index = j
-                break
-            }
-        }
+		// Remove the selected agent from remainingAgents
+		// Find the index of the selected agent
+		index := -1
+		for j, id := range remainingAgents {
+			if id == agent {
+				index = j
+				break
+			}
+		}
 
-        if index == -1 {
-            log.Fatal("selected agent not found in remainingAgents")
-        }
+		if index == -1 {
+			log.Fatal("selected agent not found in remainingAgents")
+		}
 
-        // Remove the agent by swapping with the last element and truncating the slice
-        remainingAgents[index] = remainingAgents[len(remainingAgents)-1]
-        remainingAgents = remainingAgents[:len(remainingAgents)-1]
-    }
+		// Remove the agent by swapping with the last element and truncating the slice
+		remainingAgents[index] = remainingAgents[len(remainingAgents)-1]
+		remainingAgents = remainingAgents[:len(remainingAgents)-1]
+	}
 
-    return selectedChairs
+	return selectedChairs
 }
-
 
 func (t *Team1AoA) RunPostContributionAoaLogic(team *Team, agentMap map[uuid.UUID]IExtendedAgent) {
 	// Choose 2 chairs based on rank
@@ -198,12 +215,14 @@ func (t *Team1AoA) RunPostContributionAoaLogic(team *Team, agentMap map[uuid.UUI
 	// If the chairs decision do not match, then reduce rank by 1 of their score and give to common pool
 	// Then repeat until two agents agree
 
-	
-	for i:=0; i<10; i++ {
+	var current map[uuid.UUID]int
+	var prev map[uuid.UUID]int
+
+	for i := 0; i < 10; i++ {
 		chairsAgree := false
 		// listOfAgentRankVotes := make([]map[uuid.UUID]int, 0)
-		
-		// call function for agents to vote on ranks 
+
+		// call function for agents to vote on ranks
 		// for _, agentId := range team.Agents {
 		// 	agent := agentMap[agentId]
 		// 	ranks := agent.Team1_GetTeamRanks()
@@ -211,10 +230,9 @@ func (t *Team1AoA) RunPostContributionAoaLogic(team *Team, agentMap map[uuid.UUI
 		// }
 
 		chairs := t.SelectNChairs(team.Agents, 2)
-		var prev map[uuid.UUID]int
 		for _, chairId := range chairs {
 			chair := agentMap[chairId]
-			current := chair.Team1_ChairUpdateRanks(t.ranking)
+			current = chair.Team1_ChairUpdateRanks(t.ranking)
 			if prev != nil {
 				if !mapsEqual(prev, current) {
 					// Reduce rank of both chairs by 1
@@ -225,7 +243,7 @@ func (t *Team1AoA) RunPostContributionAoaLogic(team *Team, agentMap map[uuid.UUI
 						}
 					}
 					chairsAgree = false
-					break				
+					break
 				}
 			} else {
 				prev = current
@@ -236,13 +254,10 @@ func (t *Team1AoA) RunPostContributionAoaLogic(team *Team, agentMap map[uuid.UUI
 		if chairsAgree {
 			break
 		}
-		
+
 	}
-
-	// get the pointers to chairs and call countVotes function to get the result
-
-	return
-
+	// chairs agree therefore set the team ranking to the agreed ranking
+	t.ranking = current
 }
 
 func mapsEqual(a, b map[uuid.UUID]int) bool {
@@ -258,15 +273,15 @@ func mapsEqual(a, b map[uuid.UUID]int) bool {
 }
 
 func (t *Team1AoA) GetAgentNewRank(agentId uuid.UUID) int {
-	agentTotalContributions := t.agentLQueue[agentId].Sum()  // total stated contributions of this agent (over the last n turns)
+	agentTotalContributions := t.agentLQueue[agentId].Sum() // total stated contributions of this agent (over the last n turns)
 
 	agentCurrentRank := t.ranking[agentId]
 	// iterate from the highest rank to the lowest rank
-	// return the rank if the total contribution is greater than or equal to the threshold
+	// return the rank if the total contribution is greater than or equal to the boundary
 	newRank := 0
-	for rank := len(t.threshold) - 1; rank >= 0; rank-- {
-		threshold := t.threshold[rank]
-		if agentTotalContributions >= threshold {
+	for rank := len(t.rankBoundary) - 1; rank >= 0; rank-- {
+		boundary := t.rankBoundary[rank]
+		if agentTotalContributions >= boundary {
 			newRank = rank + 1
 		}
 	}
@@ -277,7 +292,7 @@ func (t *Team1AoA) GetAgentNewRank(agentId uuid.UUID) int {
 		newRank = agentCurrentRank - 1
 	}
 
-	// log.fatal("Agent total contribution is less than the minimum threshold")
+	// log.fatal("Agent total contribution is less than the minimum boundary")
 	return newRank // or an appropriate default value or error code
 }
 
@@ -292,9 +307,10 @@ func CreateTeam1AoA(team *Team) IArticlesOfAssociation {
 	}
 
 	return &Team1AoA{
-		auditResult: auditResult,
-		ranking:     ranking,
-		threshold:   [5]int{10, 20, 30, 40, 50},
-		agentLQueue: agentLQueue,
+		auditResult:      auditResult,
+		ranking:          ranking,
+		rankBoundary:     [5]int{10, 20, 30, 40, 50},
+		agentLQueue:      agentLQueue,
+		commonPoolWeight: 5,
 	}
 }

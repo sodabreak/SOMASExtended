@@ -128,7 +128,6 @@ func (t *Team2AoA) GetWithdrawalOrder(agentIDs []uuid.UUID) []uuid.UUID {
 
 func (t *Team2AoA) RunPostContributionAoaLogic(team *Team, agentMap map[uuid.UUID]IExtendedAgent) {}
 
-
 func CreateTeam2AoA(auditDuration int) IArticlesOfAssociation {
 	return &Team2AoA{
 		AuditMap:   make(map[uuid.UUID]*AuditQueue),
