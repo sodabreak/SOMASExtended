@@ -11,9 +11,13 @@ import (
 	"github.com/go-echarts/go-echarts/v2/opts"
 )
 
-// Add this constant at the top of the file
+// Add these constants at the top of the file
 const (
-	deathSymbol = "path://M 8 0 L 16 8 L 8 16 L 0 8 Z M 4 4 L 4 6 L 6 6 L 6 4 Z M 10 4 L 10 6 L 12 6 L 12 4 Z M 4 10 Q 8 13 12 10"
+	deathSymbol    = "💀"
+	showLegends    = false   // Toggle for showing/hiding legends
+	showAxisLabels = true    // Keep axis labels visible
+	chartWidth     = "800px" // Increased from 500px
+	chartHeight    = "500px" // Increased from 400px
 )
 
 // CreatePlaybackHTML generates visualizations for the recorded game data
@@ -41,9 +45,9 @@ func CreatePlaybackHTML(recorder *ServerDataRecorder) {
 				margin: 20px;
 			}
 			.chart { 
-				width: 45%; 
-				min-width: 600px;
-				margin-bottom: 20px;
+				width: 48%; 
+				min-width: 800px;  // Match chartWidth
+				margin-bottom: 40px;  // Increased spacing between charts
 			}
 		</style>
 		<div class="chart-container">
@@ -112,24 +116,33 @@ func createScoreChart(iteration int, turns []TurnRecord) *charts.Line {
 			Show: opts.Bool(true),
 		}),
 		charts.WithLegendOpts(opts.Legend{
-			Show: opts.Bool(true),
+			Show: opts.Bool(showLegends),
 			Top:  "15%",
 		}),
 		charts.WithXAxisOpts(opts.XAxis{
 			Name:    "Turn Number",
 			NameGap: 30,
 			AxisLabel: &opts.AxisLabel{
-				Show:   opts.Bool(true),
-				Margin: 20,
+				Show: opts.Bool(showAxisLabels),
 			},
 		}),
 		charts.WithYAxisOpts(opts.YAxis{
 			Name:    "Score",
 			NameGap: 30,
+			AxisLabel: &opts.AxisLabel{
+				Show: opts.Bool(showAxisLabels),
+			},
+		}),
+		charts.WithGridOpts(opts.Grid{
+			Top:          "25%",
+			Right:        "5%",
+			Left:         "10%",
+			Bottom:       "15%",
+			ContainLabel: opts.Bool(true),
 		}),
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:  "500px",
-			Height: "400px",
+			Width:  chartWidth,
+			Height: chartHeight,
 		}),
 	)
 
@@ -239,24 +252,33 @@ func createContributionChart(iteration int, turns []TurnRecord) *charts.Line {
 			Show: opts.Bool(true),
 		}),
 		charts.WithLegendOpts(opts.Legend{
-			Show: opts.Bool(true),
+			Show: opts.Bool(showLegends),
 			Top:  "15%",
 		}),
 		charts.WithXAxisOpts(opts.XAxis{
 			Name:    "Turn Number",
 			NameGap: 30,
 			AxisLabel: &opts.AxisLabel{
-				Show:   opts.Bool(true),
-				Margin: 20,
+				Show: opts.Bool(showAxisLabels),
 			},
 		}),
 		charts.WithYAxisOpts(opts.YAxis{
 			Name:    "Contribution",
 			NameGap: 30,
+			AxisLabel: &opts.AxisLabel{
+				Show: opts.Bool(showAxisLabels),
+			},
+		}),
+		charts.WithGridOpts(opts.Grid{
+			Top:          "25%",
+			Right:        "5%",
+			Left:         "10%",
+			Bottom:       "15%",
+			ContainLabel: opts.Bool(true),
 		}),
 		charts.WithInitializationOpts(opts.Initialization{
-			Width:  "500px",
-			Height: "400px",
+			Width:  chartWidth,
+			Height: chartHeight,
 		}),
 	)
 
@@ -327,7 +349,11 @@ func createContributionChart(iteration int, turns []TurnRecord) *charts.Line {
 		// Add death marker
 		if deathTurn != -1 {
 			scatter := charts.NewScatter()
-			scatter.AddSeries(agentID+" Death", []opts.ScatterData{deathMarker})
+			scatter.AddSeries(agentID+" Death", []opts.ScatterData{deathMarker},
+				charts.WithItemStyleOpts(opts.ItemStyle{
+					Color: "black",
+				}),
+			)
 			line.Overlap(scatter)
 		}
 	}
