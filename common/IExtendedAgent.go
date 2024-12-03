@@ -1,6 +1,8 @@
 package common
 
 import (
+	gameRecorder "github.com/ADimoska/SOMASExtended/gameRecorder"
+
 	"github.com/MattSScott/basePlatformSOMAS/v2/pkg/agent"
 	"github.com/google/uuid"
 
@@ -61,4 +63,7 @@ type IExtendedAgent interface {
 	SetAoARanking(Preferences []int)
 	GetContributionAuditVote() Vote
 	GetWithdrawalAuditVote() Vote
+
+	// Data Recording
+	RecordAgentStatus() gameRecorder.AgentRecord
 }
