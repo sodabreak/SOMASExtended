@@ -338,6 +338,20 @@ func (mi *ExtendedAgent) HandleWithdrawalMessage(msg *common.WithdrawalMessage) 
 	// Team's agent should implement logic to store or process the reported withdrawal amount as desired
 }
 
+func (mi *ExtendedAgent) HandleAgentOpinionRequestMessage(msg *common.AgentOpinionRequestMessage) {
+	// Team's agent should implement logic to respond to opinion request as desired
+	log.Printf("Agent %s received opinion request from %s\n", mi.GetID(), msg.AgentID)
+	opinion := 70
+	opinionResponseMsg := mi.CreateAgentOpinionResponseMessage(msg.AgentID, opinion)
+	log.Printf("Sending opinion response to %s\n", msg.AgentID)
+	mi.SendMessage(opinionResponseMsg, msg.AgentID) // Sent asynchronously, because this is "extra information"
+}
+
+func (mi *ExtendedAgent) HandleAgentOpinionResponseMessage(msg *common.AgentOpinionResponseMessage) {
+	// Team's agent should implement logic to store or process opinion response as desired
+	log.Printf("Agent %s received opinion response from %s: opinion=%d\n", mi.GetID(), msg.GetSender(), msg.AgentOpinion)
+}
+
 func (mi *ExtendedAgent) BroadcastSyncMessageToTeam(msg message.IMessage[common.IExtendedAgent]) {
 	// Send message to all team members synchronously
 	agentsInTeam := mi.Server.GetAgentsInTeam(mi.TeamID)
@@ -348,16 +362,16 @@ func (mi *ExtendedAgent) BroadcastSyncMessageToTeam(msg message.IMessage[common.
 	}
 }
 
-func (mi *ExtendedAgent) StateContributionToTeam() {
+func (mi *ExtendedAgent) StateContributionToTeam(instance common.IExtendedAgent) {
 	// Broadcast contribution to team
-	statedContribution := mi.GetStatedContribution(mi)
+	statedContribution := instance.GetStatedContribution(instance)
 	contributionMsg := mi.CreateContributionMessage(statedContribution)
 	mi.BroadcastSyncMessageToTeam(contributionMsg)
 }
 
-func (mi *ExtendedAgent) StateWithdrawalToTeam() {
+func (mi *ExtendedAgent) StateWithdrawalToTeam(instance common.IExtendedAgent) {
 	// Broadcast withdrawal to team
-	statedWithdrawal := mi.GetStatedWithdrawal(mi)
+	statedWithdrawal := instance.GetStatedWithdrawal(instance)
 	withdrawalMsg := mi.CreateWithdrawalMessage(statedWithdrawal)
 	mi.BroadcastSyncMessageToTeam(withdrawalMsg)
 }
@@ -388,6 +402,21 @@ func (mi *ExtendedAgent) CreateWithdrawalMessage(statedAmount int) *common.Withd
 	return &common.WithdrawalMessage{
 		BaseMessage:  mi.CreateBaseMessage(),
 		StatedAmount: statedAmount,
+	}
+}
+
+func (mi *ExtendedAgent) CreateAgentOpinionRequestMessage(agentID uuid.UUID) *common.AgentOpinionRequestMessage {
+	return &common.AgentOpinionRequestMessage{
+		BaseMessage: mi.CreateBaseMessage(),
+		AgentID:     agentID,
+	}
+}
+
+func (mi *ExtendedAgent) CreateAgentOpinionResponseMessage(agentID uuid.UUID, opinion int) *common.AgentOpinionResponseMessage {
+	return &common.AgentOpinionResponseMessage{
+		BaseMessage:  mi.CreateBaseMessage(),
+		AgentID:      agentID,
+		AgentOpinion: opinion,
 	}
 }
 
