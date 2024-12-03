@@ -3,10 +3,12 @@ package common
 import (
 	"container/list"
 	"errors"
-	"github.com/google/uuid"
+	"log"
 	"math/rand"
 	"sort"
-	"log"
+
+	"github.com/MattSScott/basePlatformSOMAS/v2/pkg/server"
+	"github.com/google/uuid"
 )
 
 type Team1AoA struct {
@@ -163,40 +165,70 @@ func (t *Team1AoA) SelectNChairs(agentIds []uuid.UUID, n int) []uuid.UUID {
     return selectedChairs
 }
 
-// TODO: move to AGENT
-func (a *ExtendedAgent) ChairCountVotes(ENUM_THINGS_TO_VOTE_ON iota) T {
-	switch (ENUM_THINGS_TO_VOTE_ON){
-		case NEW_AGENT_RANK_PREFS:
-			votes := 0
-			for _, agent := range t.Agents {
-				votes += agent.GetAgentRankPreferences()
-			return votes
-	}
-}
-}
 
-func (t *Team1AoA) RunPostContributionAoaLogic(team *Team) {
+func (t *Team1AoA) RunPostContributionAoaLogic(team *Team, agentMap map[uuid.UUID]IExtendedAgent) {
 	// Choose 2 chairs based on rank
 	// call function for agents to vote on ranks
 	// If the chairs decision do not match, then reduce rank by 1 of their score and give to common pool
 	// Then repeat until two agents agree
 
-	// Choose 2 chairs based on rank
-	chairs := t.SelectNChairs(team.Agents, 2)
-
-	listOfmaps := make([]map[uuid.UUID]int, 0)
 	
+	for i:=0; i<10; i++ {
+		chairsAgree := false
+		listOfAgentRankVotes := make([]map[uuid.UUID]int, 0)
+		
+		// call function for agents to vote on ranks 
+		for _, agentId := range team.Agents {
+			agent := agentMap[agentId]
+			ranks := agent.Team1_GetTeamRanks()
+			listOfAgentRankVotes = append(listOfAgentRankVotes, ranks)
+		}
 
-	chair_1.ChairCountVotes(NEW_AGENT_RANK_PREFS)
+		chairs := t.SelectNChairs(team.Agents, 2)
+		var prev map[uuid.UUID]int
+		for _, agentId := range chairs {
+			agent := agentMap[agentId]
+			current := agent.Team1_ChairCountVotes(listOfAgentRankVotes)
+			if prev != nil {
+				if !mapsEqual(prev, current) {
+					// Reduce rank of both chairs by 1
+					for _, id := range chairs {
+						t.ranking[id]--
+						if t.ranking[id] < 1 {
+							t.ranking[id] = 1
+						}
+					}
+					chairsAgree = false
+					break				
+				}
+			} else {
+				prev = current
+			}
+			chairsAgree = true
+		}
+		// Chairs agree
+		if chairsAgree {
+			break
+		}
+		
+	}
 
 	// get the pointers to chairs and call countVotes function to get the result
-	
-	
-
-
 
 	return
 
+}
+
+func mapsEqual(a, b map[uuid.UUID]int) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for k, v := range a {
+		if b[k] != v {
+			return false
+		}
+	}
+	return true
 }
 
 func CreateTeam1AoA(team *Team) IArticlesOfAssociation {
