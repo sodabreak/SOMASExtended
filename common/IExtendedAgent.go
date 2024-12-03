@@ -1,6 +1,8 @@
 package common
 
 import (
+	gameRecorder "github.com/ADimoska/SOMASExtended/gameRecorder"
+
 	"github.com/MattSScott/basePlatformSOMAS/v2/pkg/agent"
 	"github.com/google/uuid"
 
@@ -14,6 +16,7 @@ type IExtendedAgent interface {
 	GetTeamID() uuid.UUID
 	GetLastTeamID() uuid.UUID
 	GetTrueScore() int
+	GetTeamRanking() []uuid.UUID
 
 	// Functions that involve strategic decisions
 	StartTeamForming(instance IExtendedAgent, agentInfoList []ExposedAgentInfo)
@@ -28,15 +31,17 @@ type IExtendedAgent interface {
 	SetTrueScore(score int)
 	SetAgentContributionAuditResult(agentID uuid.UUID, result bool)
 	SetAgentWithdrawalAuditResult(agentID uuid.UUID, result bool)
+	SetTeamRanking(teamRanking []uuid.UUID)
 	DecideStick()
 	DecideRollAgain()
 
 	// Strategic decisions (functions that each team can implement their own)
 	// NOTE: Any function calling these should have a parameter of type IExtendedAgent (instance IExtendedAgent)
 	DecideTeamForming(agentInfoList []ExposedAgentInfo) []uuid.UUID
-	StickOrAgain() bool
+	StickOrAgain(accumulatedScore int, prevRoll int) bool
 	DecideContribution() int
 	DecideWithdrawal() int
+	VoteOnAgentEntry(candidateID uuid.UUID) bool
 	StickOrAgainFor(agentId uuid.UUID, accumulatedScore int, prevRoll int) int
 
 	// Messaging functions
@@ -58,4 +63,7 @@ type IExtendedAgent interface {
 	SetAoARanking(Preferences []int)
 	GetContributionAuditVote() Vote
 	GetWithdrawalAuditVote() Vote
+
+	// Data Recording
+	RecordAgentStatus() gameRecorder.AgentRecord
 }
