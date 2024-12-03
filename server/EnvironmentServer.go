@@ -256,7 +256,7 @@ func (cs *EnvironmentServer) allocateAoAs() {
 			randomIndex := rand.Intn(len(tiedAoAs)) // Random choice among tied AoAs
 			selectedAoA = tiedAoAs[randomIndex]
 		} else {
-			selectedAoA = 0 // No valid votes; default AoA
+			selectedAoA = 1 + rand.Intn(6) // No valid votes, choose random AoA [1-6]
 		}
 
 		// Assign the selected AoA to the team's strategy based on its value
