@@ -159,7 +159,7 @@ func (mi *ExtendedAgent) DecideRollAgain() {
 // This function MUST return the same value when called multiple times in the same turn
 func (mi *ExtendedAgent) GetActualContribution(instance common.IExtendedAgent) int {
 	if mi.HasTeam() {
-		contribution := instance.DecideContribution()
+		contribution := instance.GetExpectedContribution()
 		if mi.VerboseLevel > 6 {
 			fmt.Printf("%s is contributing %d to the common pool and thinks the common pool size is %d\n", mi.GetID(), contribution, mi.Server.GetTeam(mi.GetID()).GetCommonPool())
 		}
@@ -172,7 +172,7 @@ func (mi *ExtendedAgent) GetActualContribution(instance common.IExtendedAgent) i
 	}
 }
 
-func (mi *ExtendedAgent) DecideContribution() int {
+func (mi *ExtendedAgent) GetExpectedContribution() int {
 	// first check if the agent has a team
 	if !mi.HasTeam() {
 		return 0
@@ -214,7 +214,7 @@ func (mi *ExtendedAgent) GetActualWithdrawal(instance common.IExtendedAgent) int
 		return 0
 	}
 	currentPool := mi.Server.GetTeam(mi.GetID()).GetCommonPool()
-	withdrawal := instance.DecideWithdrawal()
+	withdrawal := instance.GetExpectedWithdrawal()
 	fmt.Printf("%s is withdrawing %d from the common pool of size %d\n", mi.GetID(), withdrawal, currentPool)
 	return withdrawal
 }
@@ -227,11 +227,11 @@ func (mi *ExtendedAgent) GetStatedWithdrawal(instance common.IExtendedAgent) int
 		return 0
 	}
 	// Currently, assume stated withdrawal matches actual withdrawal
-	return instance.DecideWithdrawal()
+	return instance.GetActualContribution(instance)
 }
 
 // Decide the withdrawal amount based on AoA and current pool size
-func (mi *ExtendedAgent) DecideWithdrawal() int {
+func (mi *ExtendedAgent) GetExpectedWithdrawal() int {
 	// first check if the agent has a team
 	if !mi.HasTeam() {
 		return 0
