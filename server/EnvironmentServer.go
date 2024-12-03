@@ -212,10 +212,6 @@ func (cs *EnvironmentServer) allocateAoAs() {
 
 		// Process votes from all team members
 		for _, agent := range team.Agents {
-			// Skip dead agents; they do not contribute to the voting process
-			if cs.IsAgentDead(agent) {
-				continue
-			}
 
 			// Get the agent's ranked preferences for AoAs (maximum of 6 ranked choices)
 			agentAoARanking := cs.GetAgentMap()[agent].GetAoARanking()
