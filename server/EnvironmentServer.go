@@ -96,6 +96,7 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 		}
 
 		orderedAgents := team.TeamAoA.GetWithdrawalOrder(team.Agents)
+		commonPoolBefore := team.GetCommonPool()
 		for _, agentID := range orderedAgents {
 			agent := cs.GetAgentMap()[agentID]
 			if agent.GetTeamID() == uuid.Nil || cs.IsAgentDead(agentID) {
@@ -112,7 +113,7 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 
 			agentScore := agent.GetTrueScore()
 			// Update audit result for this agent
-			team.TeamAoA.SetWithdrawalAuditResult(agentID, agentScore, agentActualWithdrawal, agentStatedWithdrawal, team.GetCommonPool())
+			team.TeamAoA.SetWithdrawalAuditResult(agentID, agentScore, agentActualWithdrawal, agentStatedWithdrawal, commonPoolBefore)
 			agent.SetTrueScore(agentScore + agentActualWithdrawal)
 
 			// Update the common pool after each withdrawal so agents can see the updated pool before deciding their withdrawal.
