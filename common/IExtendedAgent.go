@@ -67,11 +67,14 @@ type IExtendedAgent interface {
 	SetAoARanking(Preferences []int)
 	GetContributionAuditVote() Vote
 	GetWithdrawalAuditVote() Vote
+	GetTrueSomasTeamID() int
 
 	// Data Recording
-	RecordAgentStatus() gameRecorder.AgentRecord
+	RecordAgentStatus(instance IExtendedAgent) gameRecorder.AgentRecord
+
 
 	// Team 1 specific functions
-	Team1_ChairCountVotes([]map[uuid.UUID]int) map[uuid.UUID]int
-	Team1_GetTeamRanks() map[uuid.UUID]int
+	Team1_ChairUpdateRanks(rankMap map[uuid.UUID]int) map[uuid.UUID]int
+	Team1_VoteOnTaxBrackets(initialThresholds [5]int) [5]int
+	// Team1_GetTeamRanks() map[uuid.UUID]int
 }

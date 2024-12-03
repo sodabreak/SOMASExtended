@@ -2,47 +2,73 @@ package common
 
 import (
 	"container/list"
-	"errors"
+	// "errors"
 	"log"
 	"math/rand"
 	"sort"
 
-	"github.com/MattSScott/basePlatformSOMAS/v2/pkg/server"
+	// "github.com/ADimoska/SOMASExtended/agents"
+	// "github.com/MattSScott/basePlatformSOMAS/v2/pkg/server"
 	"github.com/google/uuid"
 )
 
 type Team1AoA struct {
 	auditResult map[uuid.UUID]*list.List
 	ranking     map[uuid.UUID]int
-	threshold   int
+	threshold   [5]int
+	agentLQueue map[uuid.UUID]*LeakyQueue
 }
+
+// LeakyQueue represents a queue with a fixed capacity.
+type LeakyQueue struct {
+	data     []int
+	sum 	 int
+	capacity int
+}
+
+// NewLeakyQueue initializes a new LeakyQueue with the specified capacity.
+func NewLeakyQueue(capacity int) *LeakyQueue {
+	if capacity <= 0 {
+		panic("capacity must be greater than 0")
+	}
+	return &LeakyQueue{
+		data:     make([]int, 0, capacity),
+		sum: 	  0,
+		capacity: capacity,
+	}
+}
+
+// Push adds an element to the queue.
+// If the queue exceeds its capacity, the oldest element is removed.
+func (q *LeakyQueue) Push(value int) {
+	if len(q.data) >= q.capacity {
+		q.sum -= q.data[0]
+		q.data = q.data[1:] // Remove the oldest element
+	}
+	q.sum += value
+	q.data = append(q.data, value) // Add the new element
+}
+
+func (q *LeakyQueue) Sum() int{
+	return q.sum
+}
+
+
 
 func (t *Team1AoA) ResetAuditMap() {
 	t.auditResult = make(map[uuid.UUID]*list.List)
 }
 
+// TODO: Add functionality for expected contribution to change based on rank
 func (t *Team1AoA) GetExpectedContribution(agentId uuid.UUID, agentScore int) int {
-	return t.threshold // For now using threshold as minimum for all ranks, later have per rank minimums? But need to vote what is min?
+	return 1 // For now using threshold as minimum for all ranks, later have per rank minimums? But need to vote what is min?
 }
 
 func (t *Team1AoA) SetContributionAuditResult(agentId uuid.UUID, agentScore int, agentActualContribution int, agentStatedContribution int) {
 	t.auditResult[agentId].PushBack((agentStatedContribution > agentActualContribution))
 
-	// Just for our AoA we are updating rank based on stated
-	t.ranking[agentId] += (agentStatedContribution / t.threshold) // Plus 1 rank every `threshold` points?
-
-	// Cap agent rank at 5
-	if t.ranking[agentId] > 5 {
-		t.ranking[agentId] = 5
-	}
-	// Lower rank if insufficient contribution
-	if agentActualContribution < t.threshold { // For now using threshold as minimum for all ranks, later have per rank minimums? But need to vote what is min?
-		t.ranking[agentId] -= 1
-	}
-	if t.ranking[agentId] < 1 { // Ensure cant go below 1
-		t.ranking[agentId] = 1
-	}
-
+	// Update The LeakyQueue of agent
+	t.agentLQueue[agentId].Push(agentStatedContribution);
 }
 
 func (t *Team1AoA) GetExpectedWithdrawal(agentId uuid.UUID, agentScore int, commonPool int) int {
@@ -175,20 +201,20 @@ func (t *Team1AoA) RunPostContributionAoaLogic(team *Team, agentMap map[uuid.UUI
 	
 	for i:=0; i<10; i++ {
 		chairsAgree := false
-		listOfAgentRankVotes := make([]map[uuid.UUID]int, 0)
+		// listOfAgentRankVotes := make([]map[uuid.UUID]int, 0)
 		
 		// call function for agents to vote on ranks 
-		for _, agentId := range team.Agents {
-			agent := agentMap[agentId]
-			ranks := agent.Team1_GetTeamRanks()
-			listOfAgentRankVotes = append(listOfAgentRankVotes, ranks)
-		}
+		// for _, agentId := range team.Agents {
+		// 	agent := agentMap[agentId]
+		// 	ranks := agent.Team1_GetTeamRanks()
+		// 	listOfAgentRankVotes = append(listOfAgentRankVotes, ranks)
+		// }
 
 		chairs := t.SelectNChairs(team.Agents, 2)
 		var prev map[uuid.UUID]int
-		for _, agentId := range chairs {
-			agent := agentMap[agentId]
-			current := agent.Team1_ChairCountVotes(listOfAgentRankVotes)
+		for _, chairId := range chairs {
+			chair := agentMap[chairId]
+			current := chair.Team1_ChairUpdateRanks(t.ranking)
 			if prev != nil {
 				if !mapsEqual(prev, current) {
 					// Reduce rank of both chairs by 1
@@ -231,17 +257,44 @@ func mapsEqual(a, b map[uuid.UUID]int) bool {
 	return true
 }
 
+func (t *Team1AoA) GetAgentNewRank(agentId uuid.UUID) int {
+	agentTotalContributions := t.agentLQueue[agentId].Sum()  // total stated contributions of this agent (over the last n turns)
+
+	agentCurrentRank := t.ranking[agentId]
+	// iterate from the highest rank to the lowest rank
+	// return the rank if the total contribution is greater than or equal to the threshold
+	newRank := 0
+	for rank := len(t.threshold) - 1; rank >= 0; rank-- {
+		threshold := t.threshold[rank]
+		if agentTotalContributions >= threshold {
+			newRank = rank + 1
+		}
+	}
+	// Speed Limit to climb rank
+	if newRank > agentCurrentRank+1 {
+		newRank = agentCurrentRank + 1
+	} else if newRank < agentCurrentRank-1 {
+		newRank = agentCurrentRank - 1
+	}
+
+	// log.fatal("Agent total contribution is less than the minimum threshold")
+	return newRank // or an appropriate default value or error code
+}
+
 func CreateTeam1AoA(team *Team) IArticlesOfAssociation {
 	auditResult := make(map[uuid.UUID]*list.List)
 	ranking := make(map[uuid.UUID]int)
+	agentLQueue := make(map[uuid.UUID]*LeakyQueue)
 	for _, agent := range team.Agents {
 		auditResult[agent] = list.New()
 		ranking[agent] = 1
+		agentLQueue[agent] = NewLeakyQueue(5)
 	}
 
 	return &Team1AoA{
 		auditResult: auditResult,
 		ranking:     ranking,
-		threshold:   5,
+		threshold:   [5]int{10, 20, 30, 40, 50},
+		agentLQueue: agentLQueue,
 	}
 }
