@@ -642,7 +642,7 @@ func (cs *EnvironmentServer) GetTeamFromTeamID(teamID uuid.UUID) *common.Team {
 }
 
 // To be used by agents to find out what teams they want to join in the next round (if they are orphaned).
-func (cs *EnvironmentServer) GetTeams() []uuid.UUID {
+func (cs *EnvironmentServer) GetTeamIDs() []uuid.UUID {
 	teamIDs := make([]uuid.UUID, 0, len(cs.Teams))
 	for teamID := range cs.Teams {
 		teamIDs = append(teamIDs, teamID)
