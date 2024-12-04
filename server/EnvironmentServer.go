@@ -162,16 +162,14 @@ func (cs *EnvironmentServer) RunTurn(i, j int) {
 	// TODO: Reallocate agents who left their teams during the turn
 
 	// check if threshold turn
+
+	cs.teamsMutex.Unlock()
+
 	if cs.turn%cs.thresholdTurns == 0 && cs.turn > 1 {
-		for _, agent := range cs.GetAgentMap() {
-			cs.teamsMutex.Unlock()
-			if !cs.IsAgentDead(agent.GetID()) {
-				cs.killAgentBelowThreshold(agent.GetID())
-			}
-			cs.teamsMutex.Lock()
-		}
-		cs.createNewRoundScoreThreshold()
+		cs.ApplyThreshold()
 	}
+
+	cs.teamsMutex.Lock()
 
 	// record data
 	cs.RecordTurnInfo()
@@ -551,18 +549,32 @@ func (cs *EnvironmentServer) ResetAgents() {
 	}
 }
 
+func (cs *EnvironmentServer) ApplyThreshold() {
+	for _, team := range cs.Teams {
+		team.SetCommonPool(0)
+		for _, agentID := range team.Agents {
+			if !cs.IsAgentDead(agentID) {
+				cs.killAgentBelowThreshold(agentID)
+			}
+			if agent := cs.GetAgentMap()[agentID]; agent != nil {
+				agent.SetTrueScore(0)
+			}
+		}
+	}
+}
+
 func (cs *EnvironmentServer) RecordTurnInfo() {
 
 	// agent information
 	agentRecords := []gameRecorder.AgentRecord{}
 	for _, agent := range cs.GetAgentMap() {
-		newAgentRecord := agent.RecordAgentStatus()
+		newAgentRecord := agent.RecordAgentStatus(agent)
 		newAgentRecord.IsAlive = true
 		agentRecords = append(agentRecords, newAgentRecord)
 	}
 
 	for _, agent := range cs.deadAgents {
-		newAgentRecord := agent.RecordAgentStatus()
+		newAgentRecord := agent.RecordAgentStatus(agent)
 		newAgentRecord.IsAlive = false
 		agentRecords = append(agentRecords, newAgentRecord)
 	}
