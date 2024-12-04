@@ -20,6 +20,7 @@ type IServer interface {
 	GetTeam(agentID uuid.UUID) *Team
 	GetTeamFromTeamID(teamID uuid.UUID) *Team
 	GetTeams() []uuid.UUID
+	GetTeamCommonPool(teamID uuid.UUID) int
 
 	// Debug functions
 	LogAgentStatus()

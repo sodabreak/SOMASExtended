@@ -650,6 +650,14 @@ func (cs *EnvironmentServer) GetTeams() []uuid.UUID {
 	return teamIDs
 }
 
+// Can be used to find the amount in the common pool for a team. If this is used,
+// it should be logged on the server (to prevent cheating)
+func (cs *EnvironmentServer) GetTeamCommonPool(teamID uuid.UUID) int {
+	log.Printf("Get Team Common Pool called! Team ID: %v\n", teamID)
+	team := cs.Teams[teamID]
+	return team.GetCommonPool()
+}
+
 // reset all agents (preserve memory but clears scores)
 func (cs *EnvironmentServer) ResetAgents() {
 	for _, agent := range cs.GetAgentMap() {
